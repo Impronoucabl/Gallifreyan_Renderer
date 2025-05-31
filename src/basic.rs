@@ -43,3 +43,36 @@ pub fn arc_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sw
         .set("stroke-width", ctx.stroke().strokewidth());
     doc.add(arc)
 }
+
+pub fn arc_path(doc:Document,thickness:f64, start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:bool, ctx:&context::Context) -> Document {
+    let start = p_or_c2svg(start, ctx.origin());
+    let end = p_or_c2svg(end, ctx.origin());
+    let (o_radius, i_radius) = (radius+thickness,radius-thickness);
+    let data = Data::new()
+        .move_to(start)
+        .elliptical_arc_to((
+            o_radius,o_radius,
+            0.0, //angle offset
+            0.0, //large arc
+            match sweep_dir {
+                true => 1.0,
+                false => 0.0
+            },
+            end.0,end.1,
+        )).elliptical_arc_to((
+            i_radius,i_radius,
+            0.0, //angle offset
+            0.0, //large arc
+            match sweep_dir {
+                true => 0.0,
+                false => 1.0
+            },
+            start.0,start.1,
+        )).close();
+    let arc = Path::new()
+        .set("d", data)
+        .set("fill", ctx.colour().fill())
+        .set("stroke", ctx.colour().stroke())
+        .set("stroke-width", ctx.stroke().strokewidth());
+    doc.add(arc)
+}
