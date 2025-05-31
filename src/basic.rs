@@ -24,7 +24,7 @@ pub fn circle(doc:Document, center:&PordOrCord, radius:f64, ctx:&context::Contex
     doc.add(circle)
 }
 
-pub fn arc_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, ctx:&context::Context) -> Document {
+pub fn arc_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:f64, ctx:&context::Context) -> Document {
     let start = p_or_c2svg(start, ctx.origin());
     let end = p_or_c2svg(end, ctx.origin());
     let data = Data::new()
@@ -33,7 +33,7 @@ pub fn arc_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, ct
             radius,radius,
             0.0, //angle offset
             0.0, //large arc
-            1.0, //sweep dir
+            sweep_dir,
             end.0,end.1,
         ));
     let arc = Path::new()

@@ -45,7 +45,7 @@ pub trait Polar {
         (x+x_rel,y+y_rel)
     }
     fn xy_rel(&self) -> (f64, f64) {
-        let y = f64::cos(*self.theta())* *self.r();
+        let y = -f64::cos(*self.theta())* *self.r();
         let x = f64::sin(*self.theta())* *self.r();
         (x, y)
     }
@@ -56,6 +56,6 @@ pub trait Polar {
     fn svg_xy(&self) -> (f64,f64) {
         let (x,y) = self.anchor_xy().expect("Memory management is easy");
         let (x_rel, y_rel) = self.xy_rel();
-        (x+x_rel,-y-y_rel)
+        (x+x_rel,y-y_rel)
     } 
 }
