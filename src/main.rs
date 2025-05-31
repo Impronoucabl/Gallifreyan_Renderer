@@ -3,8 +3,10 @@ use std::io::Error;
 use svg::Document;
 
 mod pord;
+mod ctx;
+mod basic;
+mod instructions;
 
-const ORIGIN: (f64,f64) = (0.0,0.0);
 const WIDTH: i64 = 2048;
 const HEIGHT:i64 = 2048;
 const SOLID_BACKGROUND: bool = true;
@@ -15,7 +17,8 @@ fn main() -> Result<(), Error> {
     println!("Starting...");
     let doc = canvasinit();
     let filepath = "Imgs\\".to_owned() + &filename.trim();
-    save(filepath, &doc)
+    let done_doc = instructions::do_this(doc, (WIDTH as f64/2.0,HEIGHT as f64/2.0));
+    save(filepath, &done_doc)
 }
 
 fn canvasinit() -> Document {
