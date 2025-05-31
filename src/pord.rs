@@ -1,6 +1,6 @@
 use std::rc::{Rc, Weak};
 
-enum PordOrCord{
+pub enum PordOrCord{
     Pord(POrd),
     Cord(f64,f64),
 }
@@ -28,7 +28,7 @@ impl Polar for POrd {
         self.anchor.clone()
     }
 }
-trait Polar {
+pub trait Polar {
     fn r(&self) -> Rc<f64>;
     fn theta(&self) -> Rc<f64>;
     fn anchor(&self) -> Weak<PordOrCord>;
