@@ -1,3 +1,4 @@
+use std::io::Error;
 
 use svg::Document;
 
@@ -9,11 +10,13 @@ const HEIGHT:i64 = 2048;
 const SOLID_BACKGROUND: bool = true;
 const fn canvas_colour() -> &'static str {"yellow"}
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> Result<(), Error> {
+    let filename = "test";
+    println!("Starting...");
+    let doc = canvasinit();
+    let filepath = "Imgs\\".to_owned() + &filename.trim();
+    save(filepath, &doc)
 }
-
- 
 
 fn canvasinit() -> Document {
     let drawn = Document::new().set("viewBox", (0, 0, WIDTH, HEIGHT));   
@@ -29,4 +32,10 @@ fn canvasinit() -> Document {
     } else {
         drawn
     }
+}
+
+pub fn save(filepath: String, doc:&Document) -> Result<(), Error> {
+    let filename = filepath + ".svg";
+    println!("Saving under {}", filename);
+    svg::save(filename, doc)
 }
