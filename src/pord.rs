@@ -69,8 +69,8 @@ pub trait Polar:Cartesian {
         (x+x_rel,y-y_rel)
     } 
     fn xy_rel(&self) -> (f64, f64) {
-        let y = -f64::cos(*self.theta())* *self.r();
-        let x = f64::sin(*self.theta())* *self.r();
+        let y = *self.r() * -f64::cos(*self.theta());
+        let x = *self.r() * f64::sin(*self.theta());
         (x, y)
     }
 }

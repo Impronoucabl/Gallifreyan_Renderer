@@ -6,7 +6,7 @@ use crate::pord::PordOrCord::{Pord,Cord};
 use crate::pord::POrd;
 use crate::ctx::{Context, ColourContext, StrokeContext};
 use crate::basic;
-use crate::word::{Word,LetterArc};
+use crate::word::{Word,LetterArc,StemType};
 
 pub const VOWEL_RADIUS :f64 = 8.0;
 
@@ -35,7 +35,7 @@ pub fn do_this(mut doc:svg::Document, origin:(f64,f64)) -> svg::Document {
     let svg_origin = Rc::new(Cord(origin.0,origin.1));
     let (path_ctx, prime_ctx,word_ctx,lett_ctx,lett2_ctx) = prelude(origin);
     
-    let poi = Rc::new(Pord(POrd::new(300.0,2.0*PI/3.0, &svg_origin)));
+    let poi = Rc::new(Pord(POrd::new(500.0,3.0*PI/2.0, &svg_origin)));
     let word_p = Rc::new(Pord(POrd::new(450.0,0.0, &svg_origin)));
     doc = basic::circle(doc, &gal_origin, 1000.0,&prime_ctx);
     doc = basic::circle(doc, &Cord(0.0,800.0), 100.0,&prime_ctx);
@@ -45,7 +45,7 @@ pub fn do_this(mut doc:svg::Document, origin:(f64,f64)) -> svg::Document {
     doc = basic::arc_path(doc,10.0,&poi,&Cord(0.0,-300.0),300.0,true,&path_ctx);
     let mut test = Word::new("test",poi.clone(),200.0,word_ctx.clone());
     
-    //let letter1 = LetterArc::new("t",)
+    test.new_letter(200.0,PI*1.5,40.0,StemType::Z,None);
     let mut test2 = Word::new("test",word_p.clone(),200.0,word_ctx.clone());
     doc = test.draw(doc);
     doc = test2.draw(doc);
