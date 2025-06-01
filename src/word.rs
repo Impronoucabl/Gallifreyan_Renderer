@@ -4,7 +4,6 @@ use svg::node::element::path::Data;
 use svg::Document;
 use svg::node::element::{Circle, Path};
 
-use crate::basic;
 use crate::ctx::Context;
 use crate::pord::{Cartesian, POrd, Polar, PordOrCord};
 
@@ -91,10 +90,37 @@ impl Word {
         let (i_word_end_angle,o_word_end_angle) = (i_word_start_angle,o_word_start_angle);
         let mut data = self.start_path_data((i_word_start_angle, o_word_start_angle));
         if i_word_start_angle < i_letter_start_angle {
-            data = self.draw_word_arc(data,i_letter_start_angle);
+            data = self.draw_word_arc(data,(i_letter_start_angle,o_letter_start_angle));
         }
         (doc, data) = self.draw_letter_arc(doc, letter, data);
-        doc
+        while let Some(letter) = l_iter.next() {
+            i_letter_start_angle = self.calc_letter_ang(letter.pord.clone());
+            o_letter_start_angle = i_letter_start_angle;
+            let (i_thi, o_thi) = match letter.stem_type {
+                StemType::J | StemType::Z => (0.0, 0.0), 
+                StemType::B | StemType::S => {
+                    if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
+                        (thi2, thi1)
+                    } else {(0.0,0.0)}
+                }
+            };
+            i_letter_start_angle -= i_thi;
+            o_letter_start_angle -= o_thi;
+            data = self.draw_word_arc(data,(i_letter_start_angle,o_letter_start_angle));
+            (doc, data) = self.draw_letter_arc(doc, letter, data);
+        } 
+        data = self.draw_word_arc(data,(i_word_end_angle,o_word_end_angle));
+        let i_word_arc = Path::new()
+            .set("d", data.0.close())
+            .set("fill", self.default_ctx.colour().bg())
+            .set("stroke", "none")
+            .set("stroke-width", 0.0);
+        let o_word_arc = Path::new()
+            .set("d", data.1.close())
+            .set("fill", self.default_ctx.colour().stroke())
+            .set("stroke", "none")
+            .set("stroke-width", 0.0);
+        doc.add(o_word_arc).add(i_word_arc)
     }
     fn draw_letter_arc(&self, mut doc:Document, letter:&LetterArc, data:(Data,Data)) -> (Document,(Data,Data)) {
         let s_divot = match letter.stem_type {
@@ -132,10 +158,10 @@ impl Word {
             ));
         (doc,(i_data,o_data))
     }
-    fn draw_word_arc(&self, data:(Data,Data), end_angle:f64) -> (Data, Data) {
+    fn draw_word_arc(&self, data:(Data,Data), end_angle:(f64,f64)) -> (Data, Data) {
         let (i_radius,o_radius) = self.get_radii();
-        let i_end = self.calc_word_arc_point(end_angle, true);
-        let o_end = self.calc_word_arc_point(end_angle, false);
+        let i_end = self.calc_word_arc_point(end_angle.0, true);
+        let o_end = self.calc_word_arc_point(end_angle.1, false);
         let outer_arc = data.1        
             .elliptical_arc_to((
                 o_radius,o_radius,

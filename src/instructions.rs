@@ -12,8 +12,8 @@ pub const VOWEL_RADIUS :f64 = 8.0;
 
 
 fn prelude(origin:(f64,f64)) -> (Context,Context,Context,Context,Context) {
-    let colour = ColourContext::new("none","black");
-    let colour2 = ColourContext::new("none","red");
+    let colour = ColourContext::new("white","none","black");
+    let colour2 = ColourContext::new("white","none","red");
     let mut stroke = StrokeContext::new(20.0);
     let prime_ctx = Context::new(colour,stroke,origin);
     let word_ctx = prime_ctx.new_strokewidth(10.0); 
@@ -24,7 +24,7 @@ fn prelude(origin:(f64,f64)) -> (Context,Context,Context,Context,Context) {
     let lett2_ctx = Context::new(colour2,stroke,origin);
     //let lett2_ctx =  prime_ctx.new_strokewidth(10.0);
     
-    let filled = ColourContext::new("black","none");
+    let filled = ColourContext::new("white","black","none");
     let strokeless = StrokeContext::new(0.0);
     let path_ctx = Context::new(filled,strokeless,origin);
     (path_ctx,prime_ctx,word_ctx,lett_ctx,lett2_ctx)

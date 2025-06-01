@@ -6,6 +6,7 @@ pub struct Context {
 }
 #[derive(Clone)]
 pub struct ColourContext {
+    bg:String,
     fill:String,
     stroke:String,
 }
@@ -16,11 +17,15 @@ pub struct StrokeContext {
 }
 
 impl ColourContext {
-    pub fn new(fill:&str,stroke:&str) -> ColourContext {
+    pub fn new(bg:&str,fill:&str,stroke:&str) -> ColourContext {
         ColourContext { 
+            bg:bg.to_string(),
             fill:fill.to_string(), 
             stroke:stroke.to_string(), 
         }
+    }
+    pub fn bg(&self) -> &str {
+        &self.bg
     }
     pub fn fill(&self) -> &str {
         &self.fill
