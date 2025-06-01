@@ -1,5 +1,6 @@
 use std::rc::{Rc, Weak};
 
+#[derive(Clone)]
 pub enum PordOrCord{
     Pord(POrd),
     Cord(f64,f64),

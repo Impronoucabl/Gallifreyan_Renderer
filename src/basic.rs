@@ -5,7 +5,7 @@ use svg::node::element::{Circle, Path};
 use crate::ctx as context;
 use crate::pord::{PordOrCord,Polar};
 
-fn p_or_c2svg(poc:&PordOrCord, svg_origin:(f64,f64)) -> (f64,f64) {
+pub fn p_or_c2svg(poc:&PordOrCord, svg_origin:(f64,f64)) -> (f64,f64) {
     match poc {
         PordOrCord::Cord(x,y) => (x + svg_origin.0,-y + svg_origin.1),
         PordOrCord::Pord(poi) => poi.svg_xy()
