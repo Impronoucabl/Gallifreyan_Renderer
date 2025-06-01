@@ -39,7 +39,7 @@ impl Word {
         self.arcs.push(letter);
     }
     pub fn draw(self,doc:Document) -> Document {
-        let (x,y) = basic::p_or_c2svg(&self.pord, self.default_ctx.origin());
+        let (x,y) = self.pord.svg_xy(self.default_ctx.origin());
         let circle = Circle::new()
             .set("fill", self.default_ctx.colour().fill())
             .set("stroke", self.default_ctx.colour().stroke())

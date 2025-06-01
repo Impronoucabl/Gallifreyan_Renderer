@@ -22,6 +22,25 @@ impl POrd {
     }
 }
 
+impl Cartesian for PordOrCord {
+    fn xy(&self) -> (f64,f64) {
+        match &self {
+            PordOrCord::Pord(pord) => pord.xy(),
+            PordOrCord::Cord(x, y) => (*x,*y),
+        }
+    }
+}
+
+impl PordOrCord {
+    pub fn svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64) {
+        match &self {
+            PordOrCord::Cord(x,y) => (x + svg_origin.0,-y + svg_origin.1),
+            PordOrCord::Pord(poi) => poi.svg_xy()
+        }
+    }
+}
+
+
 impl Polar for POrd {
     fn r(&self) -> Rc<f64> {self.r.clone()}
     fn theta(&self) -> Rc<f64> {self.theta.clone()}
@@ -29,7 +48,11 @@ impl Polar for POrd {
         self.anchor.clone()
     }
 }
-pub trait Polar {
+
+pub trait Cartesian {
+    fn xy(&self) -> (f64,f64);
+}
+pub trait Polar:Cartesian {
     fn r(&self) -> Rc<f64>;
     fn theta(&self) -> Rc<f64>;
     fn anchor(&self) -> Weak<PordOrCord>;
@@ -40,19 +63,22 @@ pub trait Polar {
             PordOrCord::Pord(p) => {p.xy()}
         })
     }
-    fn xy(&self) -> (f64,f64) {
-        let (x,y) = self.anchor_xy().expect("Memory management is easy");
-        let (x_rel, y_rel) = self.xy_rel();
-        (x+x_rel,y+y_rel)
-    }
-    fn xy_rel(&self) -> (f64, f64) {
-        let y = -f64::cos(*self.theta())* *self.r();
-        let x = f64::sin(*self.theta())* *self.r();
-        (x, y)
-    }
     fn svg_xy(&self) -> (f64,f64) {
         let (x,y) = self.anchor_xy().expect("Memory management is easy");
         let (x_rel, y_rel) = self.xy_rel();
         (x+x_rel,y-y_rel)
     } 
+    fn xy_rel(&self) -> (f64, f64) {
+        let y = -f64::cos(*self.theta())* *self.r();
+        let x = f64::sin(*self.theta())* *self.r();
+        (x, y)
+    }
+}
+
+impl Cartesian for POrd {
+    fn xy(&self) -> (f64,f64) {
+        let (x,y) = self.anchor_xy().expect("Memory management is easy");
+        let (x_rel, y_rel) = self.xy_rel();
+        (x+x_rel,y+y_rel)
+    }
 }
