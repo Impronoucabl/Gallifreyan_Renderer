@@ -49,10 +49,6 @@ pub trait Polar {
         let x = f64::sin(*self.theta())* *self.r();
         (x, y)
     }
-    fn svg_xy_rel(&self) -> (f64, f64) {
-        let (x,y) = self.xy_rel();
-        (x, -y)
-    }
     fn svg_xy(&self) -> (f64,f64) {
         let (x,y) = self.anchor_xy().expect("Memory management is easy");
         let (x_rel, y_rel) = self.xy_rel();

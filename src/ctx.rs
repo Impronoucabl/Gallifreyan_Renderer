@@ -11,7 +11,8 @@ pub struct ColourContext {
 }
 #[derive(Clone, Copy)]
 pub struct StrokeContext {
-    strokewidth:f64
+    inner_strokewidth:f64,
+    outer_strokewidth:f64,
 }
 
 impl ColourContext {
@@ -30,11 +31,27 @@ impl ColourContext {
 }
 
 impl StrokeContext {
+    //Might need to revise where I divide by 2
     pub fn new(strokewidth:f64) -> StrokeContext {
-        StrokeContext { strokewidth }
+        StrokeContext { 
+            inner_strokewidth: strokewidth/2.0,
+            outer_strokewidth: strokewidth/2.0,
+        }
     }
     pub fn strokewidth(&self) -> f64 {
-        self.strokewidth
+        self.inner_strokewidth + self.outer_strokewidth
+    }
+    pub fn i_stroke(&self) -> f64 {
+        self.inner_strokewidth
+    }
+    pub fn o_stroke(&self) -> f64 {
+        self.outer_strokewidth
+    }
+    pub fn set_i_stroke(&mut self, new_i_stroke:f64) {
+        self.inner_strokewidth = new_i_stroke;
+    }
+    pub fn set_o_stroke(&mut self, new_o_stroke:f64) {
+        self.outer_strokewidth = new_o_stroke;
     }
 }
 
@@ -52,6 +69,6 @@ impl Context {
         self.origin
     }
     pub fn new_strokewidth(&self, strokewidth:f64) -> Context {
-        Context { colour: self.colour.clone(), stroke: StrokeContext { strokewidth }, origin:self.origin() }
+        Context { colour: self.colour.clone(), stroke: StrokeContext::new(strokewidth) , origin:self.origin() }
     }
 }

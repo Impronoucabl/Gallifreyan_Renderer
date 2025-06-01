@@ -5,6 +5,7 @@ use svg::Document;
 mod pord;
 mod ctx;
 mod basic;
+mod word;
 mod instructions;
 
 const WIDTH: i64 = 2048;
