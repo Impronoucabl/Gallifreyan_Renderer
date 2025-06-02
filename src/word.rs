@@ -5,12 +5,12 @@ use svg::Document;
 use svg::node::element::{Circle, Path};
 
 use crate::ctx::Context;
-use crate::pord::{Cartesian, POrd, Polar, PordOrCord};
+use crate::pord::{Cartesian, POrd, PordOrCord};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum StemType {B,J,S,Z}
 pub struct LetterArc {
-    pord: PordOrCord,
+    pord: Rc<PordOrCord>,
     radius:f64,
     stem_type:StemType,
     ctx:Option<Context>,
@@ -37,14 +37,14 @@ impl Word {
     }
     pub fn new_letter(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) {
         let location = POrd::new(r,theta,&self.pord.clone());
-        let letter = LetterArc::new(PordOrCord::Pord(location),radius,StemType::J,None);
+        let letter = LetterArc::new(Rc::new(PordOrCord::Pord(location)),radius,StemType::J,ctx);
         self.arcs.push(letter);
         if stem_type == StemType::S || stem_type == StemType::B {
             self.path_circle = true;
         }
     }
     pub fn draw(self,doc:Document) -> Document {
-        let xy = self.pord.svg_xy(self.default_ctx.origin());
+        let xy = self.pord.abs_svg_xy(self.default_ctx.origin());
         if !self.path_circle {
             self.draw_circle_only(doc, xy.0, xy.1)
         } else {
@@ -185,7 +185,7 @@ impl Word {
             None => &self.default_ctx,
             Some(con) => &con.clone()
         };
-        let (x,y) = letter.pord.svg_xy(ctx.origin());
+        let (x,y) = letter.pord.abs_svg_xy(ctx.origin());
         let l_cir = Circle::new()
             .set("fill", ctx.colour().fill())
             .set("stroke", ctx.colour().stroke())
@@ -242,12 +242,12 @@ impl Word {
             (o_radius * a,  o_radius * -b)
         }
     }
-    fn calc_letter_ang(&self, pord:PordOrCord) -> f64 {
-        let ((lett_x, lett_y), (word_x,word_y)) = (pord.xy(),self.pord.xy());
+    fn calc_letter_ang(&self, pord:Rc<PordOrCord>) -> f64 {
+        let ((lett_x, lett_y), (word_x,word_y)) = (pord.rel_xy(),self.pord.rel_xy());
         (lett_x-word_x).atan2(lett_y-word_y)
     }
-    fn calc_dist_sq(&self, pord:PordOrCord) -> f64 {
-        let ((lett_x, lett_y), (word_x,word_y)) = (pord.xy(),self.pord.xy());
+    fn calc_dist_sq(&self, pord:Rc<PordOrCord>) -> f64 {
+        let ((lett_x, lett_y), (word_x,word_y)) = (pord.rel_xy(),self.pord.rel_xy());
         (word_y - lett_y).powi(2) + (word_x - lett_x).powi(2)
     }
     fn get_radii(&self) -> (f64,f64) {
@@ -257,7 +257,7 @@ impl Word {
 }
 
 impl LetterArc {
-    pub fn new(pord: PordOrCord, radius: f64, stem_type: StemType, ctx:Option<Context>) -> LetterArc {
+    pub fn new(pord: Rc<PordOrCord>, radius: f64, stem_type: StemType, ctx:Option<Context>) -> LetterArc {
         LetterArc {
             pord,
             radius, 

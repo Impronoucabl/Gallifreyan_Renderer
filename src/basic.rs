@@ -3,10 +3,10 @@ use svg::Document;
 use svg::node::element::{Circle, Path};
 
 use crate::ctx as context;
-use crate::pord::{PordOrCord,Polar};
+use crate::pord::{Cartesian, PordOrCord};
 
 pub fn circle(doc:Document, center:&PordOrCord, radius:f64, ctx:&context::Context) -> Document {
-    let center = center.svg_xy(ctx.origin());
+    let center = center.abs_svg_xy(ctx.origin());
     let circle = Circle::new()
         .set("fill", ctx.colour().fill())
         .set("stroke", ctx.colour().stroke())
@@ -18,8 +18,8 @@ pub fn circle(doc:Document, center:&PordOrCord, radius:f64, ctx:&context::Contex
 }
 
 pub fn arc_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:f64, ctx:&context::Context) -> Document {
-    let start = start.svg_xy(ctx.origin());
-    let end = end.svg_xy(ctx.origin());
+    let start = start.abs_svg_xy(ctx.origin());
+    let end = end.abs_svg_xy(ctx.origin());
     let data = Data::new()
         .move_to(start)
         .elliptical_arc_to((
@@ -38,8 +38,8 @@ pub fn arc_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sw
 }
 
 pub fn arc_path(doc:Document,thickness:f64, start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:bool, ctx:&context::Context) -> Document {
-    let start = start.svg_xy(ctx.origin());
-    let end = end.svg_xy(ctx.origin());
+    let start = start.abs_svg_xy(ctx.origin());
+    let end = end.abs_svg_xy(ctx.origin());
     let (o_radius, i_radius) = (radius+thickness,radius-thickness);
     let data = Data::new()
         .move_to(start)
