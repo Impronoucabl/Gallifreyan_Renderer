@@ -138,8 +138,8 @@ impl Word {
             i_end_angle += thi2;
             o_end_angle += thi1;
         }
-        let i_xy = self.calc_word_arc_point(i_end_angle,true);
-        let o_xy = self.calc_word_arc_point(o_end_angle,false);
+        let i_xy = self.calc_word_arc_svg_point(i_end_angle,true);
+        let o_xy = self.calc_word_arc_svg_point(o_end_angle,false);
         let i_data = data.0
             .elliptical_arc_to((
                 i_radius,i_radius,
@@ -160,8 +160,8 @@ impl Word {
     }
     fn draw_word_arc(&self, data:(Data,Data), end_angle:(f64,f64)) -> (Data, Data) {
         let (i_radius,o_radius) = self.get_radii();
-        let i_end = self.calc_word_arc_point(end_angle.0, true);
-        let o_end = self.calc_word_arc_point(end_angle.1, false);
+        let i_end = self.calc_word_arc_svg_point(end_angle.0, true);
+        let o_end = self.calc_word_arc_svg_point(end_angle.1, false);
         let outer_arc = data.1        
             .elliptical_arc_to((
                 o_radius,o_radius,
@@ -196,8 +196,8 @@ impl Word {
         doc.add(l_cir)
     }
     fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data) {
-        let inner_start_xy = self.calc_word_arc_point(angle.0, true);
-        let outer_start_xy = self.calc_word_arc_point(angle.1, false);
+        let inner_start_xy = self.calc_word_arc_svg_point(angle.0, true);
+        let outer_start_xy = self.calc_word_arc_svg_point(angle.1, false);
         let o_data = Data::new()
             .move_to(outer_start_xy);
         let i_data = Data::new()
@@ -231,15 +231,16 @@ impl Word {
         let thi4 = thi_check(thi4_top, thi4_bot);
         (thi1,thi2,thi3,thi4)
     }
-    fn calc_word_arc_point(&self, angle:f64, inner:bool) -> (f64,f64) {
+    fn calc_word_arc_svg_point(&self, angle:f64, inner:bool) -> (f64,f64) {
         let stroke = self.default_ctx.stroke();
         let (a,b) = angle.sin_cos();
+        let (x,y) = self.abs_svg_xy(self.default_ctx.origin());
         if inner {
             let i_radius = self.radius - stroke.i_stroke();
-            (i_radius * a,  i_radius * -b)
+            (x + i_radius * a,  y - i_radius * b)
         } else {
             let o_radius = self.radius + stroke.o_stroke();
-            (o_radius * a,  o_radius * -b)
+            (x + o_radius * a,  y - o_radius * b)
         }
     }
     fn calc_letter_ang(&self, pord:Rc<PordOrCord>) -> f64 {
@@ -253,6 +254,16 @@ impl Word {
     fn get_radii(&self) -> (f64,f64) {
         let stroke = self.default_ctx.stroke();
         (self.radius - stroke.i_stroke(),self.radius + stroke.o_stroke())
+    }
+}
+
+impl Cartesian for Word {
+    fn rel_xy(&self) -> (f64,f64) {
+        self.pord.rel_xy()
+    }
+
+    fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64) {
+        self.pord.abs_svg_xy(svg_origin)
     }
 }
 

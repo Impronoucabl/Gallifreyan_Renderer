@@ -46,10 +46,10 @@ pub fn do_this(mut doc:svg::Document, origin:(f64,f64)) -> svg::Document {
     doc = basic::arc_path(doc,10.0,&poi,&Gord(0.0,-300.0),300.0,true,&path_ctx);
     let mut test = Word::new("test",poi.clone(),200.0,word_ctx.clone());
     
-    test.new_letter(200.0,PI,60.0,StemType::Z,None);
+    test.new_letter(200.0,PI,60.0,StemType::S,None);
     test.new_letter(150.0,0.0,LETTER_RADIUS,StemType::J,None);
     let mut test2 = Word::new("test",word_p.clone(),300.0,word_ctx.clone());
-    test2.new_letter(0.0,PI,LETTER_RADIUS,StemType::Z,None);
+    test2.new_letter(270.0,PI,LETTER_RADIUS,StemType::B,None);
     test2.new_letter(240.0,0.0,VOWEL_RADIUS,StemType::J,None);
     doc = test.draw(doc);
     doc = test2.draw(doc);
