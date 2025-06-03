@@ -7,7 +7,7 @@ use svg::node::element::{Circle, Path};
 use crate::ctx::Context;
 use crate::pord::{Cartesian, POrd, PordOrCord};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StemType {B,J,S,Z}
 pub struct LetterArc {
     pord: Rc<PordOrCord>,
@@ -37,7 +37,7 @@ impl Word {
     }
     pub fn new_letter(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) {
         let location = POrd::new(r,theta,&self.pord.clone());
-        let letter = LetterArc::new(Rc::new(PordOrCord::Pord(location)),radius,StemType::J,ctx);
+        let letter = LetterArc::new(Rc::new(PordOrCord::Pord(location)),radius,stem_type,ctx);
         self.arcs.push(letter);
         if stem_type == StemType::S || stem_type == StemType::B {
             self.path_circle = true;
@@ -72,7 +72,6 @@ impl Word {
             Some(lett) => lett,
         };
         let mut circle_letters = Vec::new();
-        let letter_circle:Circle;
         let mut i_letter_start_angle = self.calc_letter_ang(letter.pord.clone());
         let mut o_letter_start_angle = i_letter_start_angle;
         let (i_word_start_angle, o_word_start_angle) = match letter.stem_type {
@@ -94,7 +93,7 @@ impl Word {
         if i_word_start_angle < i_letter_start_angle {
             data = self.draw_word_arc(data,(i_letter_start_angle,o_letter_start_angle));
         }
-        match self.draw_letter_arc( letter, data) {
+        match self.draw_letter_arc(letter, data) {
             (Some(letter_circle), new_data)=> {
                 circle_letters.push(letter_circle);
                 data = new_data;
