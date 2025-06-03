@@ -1,3 +1,4 @@
+use std::f64::consts::PI;
 use std::rc::Rc;
 
 use svg::node::element::path::Data;
@@ -91,15 +92,14 @@ impl Word {
         let (i_word_end_angle,o_word_end_angle) = (i_word_start_angle,o_word_start_angle);
         let mut data = self.start_path_data((i_word_start_angle, o_word_start_angle));
         if i_word_start_angle < i_letter_start_angle {
-            data = self.draw_word_arc(data,(i_letter_start_angle,o_letter_start_angle));
+            data = self.draw_word_arc(data,(i_word_start_angle,o_word_start_angle),(i_letter_start_angle,o_letter_start_angle));
         }
-        match self.draw_letter_arc(letter, data) {
-            (Some(letter_circle), new_data)=> {
-                circle_letters.push(letter_circle);
-                data = new_data;
-            },
-            (_,new_data) => {data = new_data;} 
-        }
+        let (cir, new_data,end_angle) = self.draw_letter_arc( letter, data);
+        if let Some(letter_circle) = cir {
+            circle_letters.push(letter_circle);
+        };
+        data = new_data;
+        let mut end_angles = end_angle;   
         while let Some(letter) = l_iter.next() {
             i_letter_start_angle = self.calc_letter_ang(letter.pord.clone());
             o_letter_start_angle = i_letter_start_angle;
@@ -113,16 +113,14 @@ impl Word {
             };
             i_letter_start_angle -= i_thi;
             o_letter_start_angle -= o_thi;
-            data = self.draw_word_arc(data,(i_letter_start_angle,o_letter_start_angle));
-            match self.draw_letter_arc( letter, data) {
-            (Some(letter_circle), new_data)=> {
+            data = self.draw_word_arc(data,end_angles,(i_letter_start_angle,o_letter_start_angle));
+            let (cir, new_data,end_angle) = self.draw_letter_arc( letter, data);
+            if let Some(letter_circle) =  cir {
                 circle_letters.push(letter_circle);
-                data = new_data;
-            },
-            (_,new_data) => {data = new_data;} 
-        }
+            };
+            (data,end_angles) = (new_data,end_angle);
         } 
-        data = self.draw_word_arc(data,(i_word_end_angle,o_word_end_angle));
+        data = self.draw_word_arc(data,end_angle,(i_word_end_angle,o_word_end_angle));
         let i_word_arc = Path::new()
             .set("d", data.0.close())
             .set("fill", self.default_ctx.colour().bg())
@@ -139,16 +137,16 @@ impl Word {
         }
         doc
     }
-    fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data)) {
+    fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data), (f64,f64)) {
+        let mut i_end_angle = self.calc_letter_ang(letter.pord.clone());
         let s_divot = match letter.stem_type {
             StemType::J | StemType::Z => {
-                return (Some(self.letter_circle_node(letter)),data); 
+                return (Some(self.letter_circle_node(letter)),data,(i_end_angle,i_end_angle)); 
             }, 
             StemType::S => true,
             StemType::B => false
         };
-        let (i_radius,o_radius)= self.get_radii();
-        let mut i_end_angle = self.calc_letter_ang(letter.pord.clone());
+        let (i_radius,o_radius)= self.get_letter_radii(letter);
         let mut o_end_angle = i_end_angle;
         if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
             i_end_angle += thi2;
@@ -158,7 +156,7 @@ impl Word {
         let o_xy = self.calc_word_arc_svg_point(o_end_angle,false);
         let i_data = data.0
             .elliptical_arc_to((
-                i_radius,i_radius,
+                o_radius,o_radius,
                 0.0, //angle offset
                 if s_divot {0.0} else {1.0}, //large arc
                 1.0, //sweep dir - 0 anti-clockwise
@@ -166,23 +164,25 @@ impl Word {
             ));
         let o_data = data.1
             .elliptical_arc_to((
-                o_radius,o_radius,
+                i_radius,i_radius,
                 0.0, //angle offset
                 if s_divot {0.0} else {1.0}, //large arc
                 1.0, //sweep dir - 0 anti-clockwise
                 o_xy.0,o_xy.1,
             ));
-        (None,(i_data,o_data))
+        (None,(i_data,o_data), (i_end_angle,o_end_angle))
     }
-    fn draw_word_arc(&self, data:(Data,Data), end_angle:(f64,f64)) -> (Data, Data) {
+    fn draw_word_arc(&self, data:(Data,Data), start_angle:(f64,f64),end_angle:(f64,f64)) -> (Data, Data) {
         let (i_radius,o_radius) = self.get_radii();
         let i_end = self.calc_word_arc_svg_point(end_angle.0, true);
         let o_end = self.calc_word_arc_svg_point(end_angle.1, false);
+        let i_large_arc = end_angle.0 - start_angle.0 > PI;
+        let o_large_arc = end_angle.1 - start_angle.1 > PI;
         let outer_arc = data.1        
             .elliptical_arc_to((
                 o_radius,o_radius,
                 0.0, //angle offset
-                0.0, //large arc
+                if o_large_arc {1.0} else {0.0}, //large arc
                 0.0, //sweep dir - 0 anti-clockwise
                 o_end.0,o_end.1,
             ));
@@ -190,7 +190,7 @@ impl Word {
             .elliptical_arc_to((
                 i_radius,i_radius,
                 0.0, //angle offset
-                0.0, //large arc
+                if i_large_arc {1.0} else {0.0}, //large arc
                 0.0, //sweep dir - 0 anti-clockwise
                 i_end.0,i_end.1,
             ));
@@ -265,6 +265,13 @@ impl Word {
     fn calc_dist_sq(&self, pord:Rc<PordOrCord>) -> f64 {
         let ((lett_x, lett_y), (word_x,word_y)) = (pord.rel_xy(),self.pord.rel_xy());
         (word_y - lett_y).powi(2) + (word_x - lett_x).powi(2)
+    }
+    fn get_letter_radii(&self, letter:&LetterArc) -> (f64,f64) {
+        let stroke = match &letter.ctx {
+            None => self.default_ctx.stroke(),
+            Some(con) => con.stroke()
+        };
+        (letter.radius - stroke.i_stroke(), letter.radius + stroke.o_stroke())
     }
     fn get_radii(&self) -> (f64,f64) {
         let stroke = self.default_ctx.stroke();

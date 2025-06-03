@@ -36,22 +36,24 @@ pub fn do_this(mut doc:svg::Document, origin:(f64,f64)) -> svg::Document {
     let svg_origin = Rc::new(Cord(origin.0,origin.1));
     let (path_ctx, prime_ctx,word_ctx,lett_ctx,lett2_ctx) = prelude(origin);
     
-    let poi = Rc::new(Pord(POrd::new(200.0,PI, &svg_origin)));
-    let word_p = Rc::new(Pord(POrd::new(400.0,PI/3.0, &svg_origin)));
+    let poi = Rc::new(Pord(POrd::new(400.0,1.5*PI, &svg_origin)));
+    let word_p = Rc::new(Pord(POrd::new(400.0,PI, &svg_origin)));
+    
+    let mut test = Word::new("test",poi.clone(),200.0,word_ctx.clone()); 
+    test.new_letter(200.0,1.5*PI,60.0,StemType::S,None);
+    test.new_letter(130.0,0.0,LETTER_RADIUS,StemType::J,None);
+    let mut test2 = Word::new("test",word_p.clone(),300.0,word_ctx.clone());
+    test2.new_letter(270.0,PI,80.0,StemType::B,None);
+    test2.new_letter(240.0,0.0,VOWEL_RADIUS,StemType::J,None);
+    doc = test.draw(doc);
+    doc = test2.draw(doc);    
+    
     doc = basic::circle(doc, &gal_origin, 1000.0,&prime_ctx);
-    doc = basic::circle(doc, &Gord(0.0,800.0), 100.0,&prime_ctx);
+    doc = basic::circle(doc, &Gord(0.0,-800.0), 100.0,&prime_ctx);
     doc = basic::arc_circle(doc, &Gord(-400.0,-300.0),&Gord(0.0,500.0),500.0,1.0, &lett_ctx);
     doc = basic::circle(doc, &Gord(600.0,0.0), 250.0, &word_ctx);
     doc = basic::circle(doc, &poi,300.0, &lett2_ctx);
     doc = basic::arc_path(doc,10.0,&poi,&Gord(0.0,-300.0),300.0,true,&path_ctx);
-    let mut test = Word::new("test",poi.clone(),200.0,word_ctx.clone());
     
-    test.new_letter(200.0,PI,60.0,StemType::S,None);
-    test.new_letter(150.0,0.0,LETTER_RADIUS,StemType::J,None);
-    let mut test2 = Word::new("test",word_p.clone(),300.0,word_ctx.clone());
-    test2.new_letter(270.0,PI,LETTER_RADIUS,StemType::B,None);
-    test2.new_letter(240.0,0.0,VOWEL_RADIUS,StemType::J,None);
-    doc = test.draw(doc);
-    doc = test2.draw(doc);
     doc
 }
