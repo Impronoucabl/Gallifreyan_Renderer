@@ -61,7 +61,7 @@ impl Word {
             .set("r", self.radius);
         doc = doc.add(w_circle);
         for letter in &self.arcs {
-            doc = self.draw_circle_letter(doc,letter);
+            doc = doc.add(self.letter_circle_node(letter));
         }
         doc
     }
@@ -71,6 +71,8 @@ impl Word {
             None => {panic!("no letters in word arc")},
             Some(lett) => lett,
         };
+        let mut circle_letters = Vec::new();
+        let letter_circle:Circle;
         let mut i_letter_start_angle = self.calc_letter_ang(letter.pord.clone());
         let mut o_letter_start_angle = i_letter_start_angle;
         let (i_word_start_angle, o_word_start_angle) = match letter.stem_type {
@@ -92,7 +94,13 @@ impl Word {
         if i_word_start_angle < i_letter_start_angle {
             data = self.draw_word_arc(data,(i_letter_start_angle,o_letter_start_angle));
         }
-        (doc, data) = self.draw_letter_arc(doc, letter, data);
+        match self.draw_letter_arc( letter, data) {
+            (Some(letter_circle), new_data)=> {
+                circle_letters.push(letter_circle);
+                data = new_data;
+            },
+            (_,new_data) => {data = new_data;} 
+        }
         while let Some(letter) = l_iter.next() {
             i_letter_start_angle = self.calc_letter_ang(letter.pord.clone());
             o_letter_start_angle = i_letter_start_angle;
@@ -107,7 +115,13 @@ impl Word {
             i_letter_start_angle -= i_thi;
             o_letter_start_angle -= o_thi;
             data = self.draw_word_arc(data,(i_letter_start_angle,o_letter_start_angle));
-            (doc, data) = self.draw_letter_arc(doc, letter, data);
+            match self.draw_letter_arc( letter, data) {
+            (Some(letter_circle), new_data)=> {
+                circle_letters.push(letter_circle);
+                data = new_data;
+            },
+            (_,new_data) => {data = new_data;} 
+        }
         } 
         data = self.draw_word_arc(data,(i_word_end_angle,o_word_end_angle));
         let i_word_arc = Path::new()
@@ -120,13 +134,16 @@ impl Word {
             .set("fill", self.default_ctx.colour().stroke())
             .set("stroke", "none")
             .set("stroke-width", 0.0);
-        doc.add(o_word_arc).add(i_word_arc)
+        doc = doc.add(o_word_arc).add(i_word_arc);
+        for cir in circle_letters {
+            doc = doc.add(cir);
+        }
+        doc
     }
-    fn draw_letter_arc(&self, mut doc:Document, letter:&LetterArc, data:(Data,Data)) -> (Document,(Data,Data)) {
+    fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data)) {
         let s_divot = match letter.stem_type {
             StemType::J | StemType::Z => {
-                doc = self.draw_circle_letter(doc, letter);
-                return (doc,data); 
+                return (Some(self.letter_circle_node(letter)),data); 
             }, 
             StemType::S => true,
             StemType::B => false
@@ -156,7 +173,7 @@ impl Word {
                 0.0, //sweep dir - 0 anti-clockwise
                 o_xy.0,o_xy.1,
             ));
-        (doc,(i_data,o_data))
+        (None,(i_data,o_data))
     }
     fn draw_word_arc(&self, data:(Data,Data), end_angle:(f64,f64)) -> (Data, Data) {
         let (i_radius,o_radius) = self.get_radii();
@@ -180,20 +197,19 @@ impl Word {
             ));
         (inner_arc,outer_arc)
     }
-    fn draw_circle_letter(&self, doc:Document,letter:&LetterArc) -> Document {
+    fn letter_circle_node(&self, letter:&LetterArc) -> Circle {
         let ctx = match &letter.ctx {
             None => &self.default_ctx,
             Some(con) => &con.clone()
         };
         let (x,y) = letter.pord.abs_svg_xy(ctx.origin());
-        let l_cir = Circle::new()
+        Circle::new()
             .set("fill", ctx.colour().fill())
             .set("stroke", ctx.colour().stroke())
             .set("stroke-width", ctx.stroke().strokewidth())
             .set("cx", x)
             .set("cy", y)
-            .set("r", letter.radius);
-        doc.add(l_cir)
+            .set("r", letter.radius)
     }
     fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data) {
         let inner_start_xy = self.calc_word_arc_svg_point(angle.0, true);
