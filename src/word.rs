@@ -161,7 +161,7 @@ impl Word {
                 i_radius,i_radius,
                 0.0, //angle offset
                 if s_divot {0.0} else {1.0}, //large arc
-                0.0, //sweep dir - 0 anti-clockwise
+                1.0, //sweep dir - 0 anti-clockwise
                 i_xy.0,i_xy.1,
             ));
         let o_data = data.1
@@ -169,7 +169,7 @@ impl Word {
                 o_radius,o_radius,
                 0.0, //angle offset
                 if s_divot {0.0} else {1.0}, //large arc
-                0.0, //sweep dir - 0 anti-clockwise
+                1.0, //sweep dir - 0 anti-clockwise
                 o_xy.0,o_xy.1,
             ));
         (None,(i_data,o_data))
