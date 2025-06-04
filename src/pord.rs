@@ -21,6 +21,13 @@ pub trait Cartesian {
         (x, -y)
     }
     fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64);
+    fn angle_to(&self, other:&impl Cartesian) -> f64 {
+        //we don't actually care about the final translation
+        let svg_origin = (0.0,0.0); 
+        let (x1,y1) = self.abs_svg_xy(svg_origin);
+        let (x2,y2) = other.abs_svg_xy(svg_origin);
+        (x2-x1).atan2(y2-y1)
+    }
 }
 
 impl Cartesian for PordOrCord {

@@ -44,11 +44,17 @@ impl Word {
             self.path_circle = true;
         }
     }
-    pub fn draw(self,doc:Document) -> Document {
+    fn sort_letters(&mut self) {
+        let location= self.pord.as_ref();
+        self.arcs.sort_by_key(|a|location.angle_to(a.pord.as_ref()) as i32);
+    }
+    pub fn draw(mut self,doc:Document) -> Document {
+        println!("drawing {}...",self.name);
         let xy = self.pord.abs_svg_xy(self.default_ctx.origin());
         if !self.path_circle {
             self.draw_circle_only(doc, xy.0, xy.1)
         } else {
+            self.sort_letters();
             self.loop_word_arc(doc)
         }
     }
@@ -73,7 +79,7 @@ impl Word {
             Some(lett) => lett,
         };
         let mut circle_letters = Vec::new();
-        let mut i_letter_start_angle = self.calc_letter_ang(letter.pord.clone());
+        let mut i_letter_start_angle = self.calc_letter_ang(letter.pord.as_ref());
         let mut o_letter_start_angle = i_letter_start_angle;
         let (i_word_start_angle, o_word_start_angle) = match letter.stem_type {
             StemType::J | StemType::Z => (0.0, 0.0), 
@@ -101,7 +107,7 @@ impl Word {
         data = new_data;
         let mut end_angles = end_angle;   
         while let Some(letter) = l_iter.next() {
-            i_letter_start_angle = self.calc_letter_ang(letter.pord.clone());
+            i_letter_start_angle = self.calc_letter_ang(letter.pord.as_ref());
             o_letter_start_angle = i_letter_start_angle;
             let (i_thi, o_thi) = match letter.stem_type {
                 StemType::J | StemType::Z => (0.0, 0.0), 
@@ -138,7 +144,7 @@ impl Word {
         doc
     }
     fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data), (f64,f64)) {
-        let mut i_end_angle = self.calc_letter_ang(letter.pord.clone());
+        let mut i_end_angle = self.calc_letter_ang(letter.pord.as_ref());
         let s_divot = match letter.stem_type {
             StemType::J | StemType::Z => {
                 return (Some(self.letter_circle_node(letter)),data,(i_end_angle,i_end_angle)); 
@@ -258,9 +264,8 @@ impl Word {
             (x + o_radius * a,  y - o_radius * b)
         }
     }
-    fn calc_letter_ang(&self, pord:Rc<PordOrCord>) -> f64 {
-        let ((lett_x, lett_y), (word_x,word_y)) = (pord.rel_xy(),self.pord.rel_xy());
-        (lett_x-word_x).atan2(lett_y-word_y)
+    fn calc_letter_ang(&self, pord:&PordOrCord) -> f64 {
+        self.angle_to(pord)
     }
     fn calc_dist_sq(&self, pord:Rc<PordOrCord>) -> f64 {
         let ((lett_x, lett_y), (word_x,word_y)) = (pord.rel_xy(),self.pord.rel_xy());
