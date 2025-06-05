@@ -1,4 +1,5 @@
 use std::rc::{Rc, Weak};
+use std::f64::consts::PI;
 
 #[derive(Clone)]
 pub enum PordOrCord{
@@ -26,7 +27,12 @@ pub trait Cartesian {
         let svg_origin = (0.0,0.0); 
         let (x1,y1) = self.abs_svg_xy(svg_origin);
         let (x2,y2) = other.abs_svg_xy(svg_origin);
-        (x2-x1).atan2(y2-y1)
+        let raw = (x2-x1).atan2(y2-y1);
+        if raw < 0.0 {
+            raw + 2.0*PI
+        } else {
+            raw
+        }
     }
 }
 

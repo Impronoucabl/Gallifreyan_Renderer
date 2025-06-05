@@ -97,10 +97,10 @@ impl Word {
         };
         let (i_word_end_angle,o_word_end_angle) = (i_word_start_angle,o_word_start_angle);
         let mut data = self.start_path_data((i_word_start_angle, o_word_start_angle));
-        if i_word_start_angle < i_letter_start_angle {
+        if i_word_start_angle < i_letter_start_angle || o_word_start_angle < o_letter_start_angle {
             data = self.draw_word_arc(data,(i_word_start_angle,o_word_start_angle),(i_letter_start_angle,o_letter_start_angle));
         }
-        let (cir, new_data,end_angle) = self.draw_letter_arc( letter, data);
+        let (cir, new_data,end_angle) = self.draw_letter_arc(letter, data);
         if let Some(letter_circle) = cir {
             circle_letters.push(letter_circle);
         };
