@@ -153,7 +153,6 @@ impl Word {
         if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
             i_end_angle += thi2;
             o_end_angle += thi1;
-            println!("thi good")
         }
         let i_xy = self.calc_word_arc_svg_point(i_end_angle,true);
         let o_xy = self.calc_word_arc_svg_point(o_end_angle,false);
@@ -253,12 +252,13 @@ impl Word {
         let stroke = self.default_ctx.stroke();
         let (a,b) = angle.sin_cos();
         let (x,y) = self.abs_svg_xy(self.default_ctx.origin());
+        //negatives cancel
         if inner {
             let i_radius = self.radius - stroke.i_stroke();
-            (x + i_radius * a,  y - i_radius * b)
+            (x + i_radius * a,  y + i_radius * b)
         } else {
             let o_radius = self.radius + stroke.o_stroke();
-            (x + o_radius * a,  y - o_radius * b)
+            (x + o_radius * a,  y + o_radius * b)
         }
     }
     fn calc_letter_ang(&self, pord:&PordOrCord) -> f64 {
