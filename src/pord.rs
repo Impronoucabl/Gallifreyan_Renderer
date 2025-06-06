@@ -55,9 +55,8 @@ impl Cartesian for PordOrCord {
 
 impl Cartesian for POrd {
     fn rel_xy(&self) -> (f64,f64) {
-        let y = *self.r() * -f64::cos(*self.theta());
-        let x = *self.r() * f64::sin(*self.theta());
-        (x, y)
+        let (a,b) = self.theta().sin_cos();
+        (*self.r() * a, -*self.r() * b)
     }
     fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64) {
         let (x,y) = match self.anchor_abs_svg_xy(svg_origin) {
