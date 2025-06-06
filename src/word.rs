@@ -74,10 +74,7 @@ impl Word {
     }
     fn loop_word_arc(self, mut doc:Document) -> Document {
         let mut l_iter = self.arcs.iter();
-        let letter = match l_iter.next() {
-            None => {panic!("no letters in word arc")},
-            Some(lett) => lett,
-        };
+        let letter = l_iter.next().expect("no letters in word arc");
         let mut circle_letters = Vec::new();
         let mut i_letter_start_angle = self.calc_letter_ang(letter.pord.as_ref());
         let mut o_letter_start_angle = i_letter_start_angle;
@@ -100,12 +97,12 @@ impl Word {
         if i_word_start_angle < i_letter_start_angle || o_word_start_angle < o_letter_start_angle {
             data = self.draw_word_arc(data,(i_word_start_angle,o_word_start_angle),(i_letter_start_angle,o_letter_start_angle));
         }
-        let (cir, new_data,end_angle) = self.draw_letter_arc(letter, data);
+        let mut cir: Option<Circle>;
+        let mut end_angle: (f64, f64);
+        (cir, data, end_angle) = self.draw_letter_arc(letter, data);
         if let Some(letter_circle) = cir {
             circle_letters.push(letter_circle);
-        };
-        data = new_data;
-        let mut end_angles = end_angle;   
+        };  
         while let Some(letter) = l_iter.next() {
             i_letter_start_angle = self.calc_letter_ang(letter.pord.as_ref());
             o_letter_start_angle = i_letter_start_angle;
@@ -119,12 +116,11 @@ impl Word {
             };
             i_letter_start_angle -= i_thi;
             o_letter_start_angle -= o_thi;
-            data = self.draw_word_arc(data,end_angles,(i_letter_start_angle,o_letter_start_angle));
-            let (cir, new_data,end_angle) = self.draw_letter_arc( letter, data);
+            data = self.draw_word_arc(data,end_angle,(i_letter_start_angle,o_letter_start_angle));
+            (cir, data,end_angle) = self.draw_letter_arc( letter, data);
             if let Some(letter_circle) =  cir {
                 circle_letters.push(letter_circle);
             };
-            (data,end_angles) = (new_data,end_angle);
         } 
         data = self.draw_word_arc(data,end_angle,(i_word_end_angle,o_word_end_angle));
         let i_word_arc = Path::new()
@@ -157,6 +153,7 @@ impl Word {
         if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
             i_end_angle += thi2;
             o_end_angle += thi1;
+            println!("thi good")
         }
         let i_xy = self.calc_word_arc_svg_point(i_end_angle,true);
         let o_xy = self.calc_word_arc_svg_point(o_end_angle,false);
@@ -235,19 +232,19 @@ impl Word {
         let lett_r_o = letter.radius + l_stroke.o_stroke();
         let dist_sq = self.calc_dist_sq(letter.pord.clone());
         //"outer thi"
-        let thi1_top = lett_r_i.powi(2) - dist_sq - word_r_o.powi(2);
-        let thi1_bot = 2.0*dist_sq.sqrt()*word_r_o;
+        let thi1_top = -lett_r_i.powi(2) + dist_sq + word_r_o.powi(2);
+        let thi1_bot = dist_sq.sqrt()*2.0*word_r_o;
         let thi1 = thi_check(thi1_top, thi1_bot);
         //"inner thi"
-        let thi2_top = lett_r_o.powi(2) - dist_sq - word_r_i.powi(2);
+        let thi2_top = -lett_r_o.powi(2) + dist_sq + word_r_i.powi(2);
         let thi2_bot = 2.0*dist_sq.sqrt()*word_r_i;
         let thi2 = thi_check(thi2_top, thi2_bot);
         //inner word boundary thi
-        let thi3_top = lett_r_i.powi(2) - dist_sq - word_r_i.powi(2);
+        let thi3_top = -lett_r_i.powi(2) + dist_sq + word_r_i.powi(2);
         let thi3_bot = 2.0*dist_sq.sqrt()*word_r_i;
         let thi3 = thi_check(thi3_top, thi3_bot);
         //outer word boundary thi
-        let thi4_top = lett_r_o.powi(2) - dist_sq - word_r_o.powi(2);
+        let thi4_top = -lett_r_o.powi(2) + dist_sq + word_r_o.powi(2);
         let thi4_bot = 2.0*dist_sq.sqrt()*word_r_o;
         let thi4 = thi_check(thi4_top, thi4_bot);
         (thi1,thi2,thi3,thi4)
@@ -268,7 +265,8 @@ impl Word {
         self.angle_to(pord)
     }
     fn calc_dist_sq(&self, pord:Rc<PordOrCord>) -> f64 {
-        let ((lett_x, lett_y), (word_x,word_y)) = (pord.rel_xy(),self.pord.rel_xy());
+        let svg_origin = (0.0,0.0);
+        let ((lett_x, lett_y), (word_x,word_y)) = (pord.abs_svg_xy(svg_origin),self.pord.abs_svg_xy(svg_origin));
         (word_y - lett_y).powi(2) + (word_x - lett_x).powi(2)
     }
     fn get_letter_radii(&self, letter:&LetterArc) -> (f64,f64) {
