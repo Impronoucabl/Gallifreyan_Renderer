@@ -92,10 +92,16 @@ impl Word {
                 }
             },
         };
-        let (i_word_end_angle,o_word_end_angle) = (i_word_start_angle,o_word_start_angle);
+        let (mut i_word_end_angle, mut o_word_end_angle) = (i_word_start_angle,o_word_start_angle);
         let mut data = self.start_path_data((i_word_start_angle, o_word_start_angle));
         if i_word_start_angle < i_letter_start_angle || o_word_start_angle < o_letter_start_angle {
             data = self.draw_word_arc(data,(i_word_start_angle,o_word_start_angle),(i_letter_start_angle,o_letter_start_angle));
+        }
+        if i_word_end_angle <= 0.0 {
+            i_word_end_angle += PI*2.0;
+        }
+        if o_word_end_angle <= 0.0 {
+            o_word_end_angle += PI*2.0;
         }
         let mut cir: Option<Circle>;
         let mut end_angle: (f64, f64);

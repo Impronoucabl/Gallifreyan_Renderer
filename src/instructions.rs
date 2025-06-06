@@ -40,10 +40,10 @@ pub fn do_this(mut doc:svg::Document, origin:(f64,f64)) -> svg::Document {
     let word_p = Rc::new(Pord(POrd::new(400.0,PI, &svg_origin)));
     
     let mut test = Word::new("test",poi.clone(),200.0,word_ctx.clone()); 
-    test.new_letter(200.0,1.25*PI,60.0,StemType::S,None);
-    test.new_letter(130.0,0.0,LETTER_RADIUS,StemType::J,None);
-    let mut test2 = Word::new("test",word_p.clone(),300.0,word_ctx.clone());
-    test2.new_letter(270.0,PI/3.0,80.0,StemType::S,None);
+    test.new_letter(160.0,PI*0.5,60.0,StemType::B,None);
+    test.new_letter(130.0,PI*0.0,LETTER_RADIUS,StemType::J,None);
+    let mut test2 = Word::new("test2",word_p.clone(),300.0,word_ctx.clone());
+    test2.new_letter(270.0,PI*1.5,80.0,StemType::B,None);
     test2.new_letter(240.0,0.0,VOWEL_RADIUS,StemType::J,None);
     doc = test.draw(doc);
     doc = test2.draw(doc);    
