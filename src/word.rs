@@ -1,10 +1,11 @@
 use std::f64::consts::PI;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 use svg::node::element::path::Data;
 use svg::Document;
 use svg::node::element::{Circle, Path};
 
+use crate::maths;
 use crate::ctx::Context;
 use crate::pord::{Cartesian, POrd, PordOrCord};
 
@@ -36,13 +37,14 @@ impl Word {
             path_circle:false,
         }
     }
-    pub fn new_letter(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) {
-        let location = POrd::new(r,theta,&self.pord.clone());
-        let letter = LetterArc::new(Rc::new(PordOrCord::Pord(location)),radius,stem_type,ctx);
+    pub fn new_letter(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
+        let location = Rc::new(PordOrCord::Pord(POrd::new(r,theta,&self.pord.clone())));
+        let letter = LetterArc::new(location.clone(),radius,stem_type,ctx);
         self.arcs.push(letter);
         if stem_type == StemType::S || stem_type == StemType::B {
             self.path_circle = true;
         }
+        Rc::downgrade(&location)
     }
     fn sort_letters(&mut self) {
         let location= self.pord.as_ref();
@@ -239,19 +241,19 @@ impl Word {
         //"outer thi"
         let thi1_top = -lett_r_i.powi(2) + dist_sq + word_r_o.powi(2);
         let thi1_bot = dist_sq.sqrt()*2.0*word_r_o;
-        let thi1 = thi_check(thi1_top, thi1_bot);
+        let thi1 = maths::thi_check(thi1_top, thi1_bot);
         //"inner thi"
         let thi2_top = -lett_r_o.powi(2) + dist_sq + word_r_i.powi(2);
         let thi2_bot = 2.0*dist_sq.sqrt()*word_r_i;
-        let thi2 = thi_check(thi2_top, thi2_bot);
+        let thi2 = maths::thi_check(thi2_top, thi2_bot);
         //inner word boundary thi
         let thi3_top = -lett_r_i.powi(2) + dist_sq + word_r_i.powi(2);
         let thi3_bot = 2.0*dist_sq.sqrt()*word_r_i;
-        let thi3 = thi_check(thi3_top, thi3_bot);
+        let thi3 = maths::thi_check(thi3_top, thi3_bot);
         //outer word boundary thi
         let thi4_top = -lett_r_o.powi(2) + dist_sq + word_r_o.powi(2);
         let thi4_bot = 2.0*dist_sq.sqrt()*word_r_o;
-        let thi4 = thi_check(thi4_top, thi4_bot);
+        let thi4 = maths::thi_check(thi4_top, thi4_bot);
         (thi1,thi2,thi3,thi4)
     }
     fn calc_word_arc_svg_point(&self, angle:f64, inner:bool) -> (f64,f64) {
@@ -307,10 +309,4 @@ impl LetterArc {
             ctx
         }
     }
-}
-
-fn thi_check(top:f64,bot:f64) -> Option<f64> {
-    if top.abs() <= bot {
-        Some((top/bot).acos())
-    } else {None}
 }
