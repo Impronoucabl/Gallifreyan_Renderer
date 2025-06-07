@@ -2,10 +2,10 @@ use svg::node::element::path::Data;
 use svg::Document;
 use svg::node::element::{Circle, Path};
 
-use crate::ctx as context;
+use crate::ctx::Context;
 use crate::pord::{Cartesian, PordOrCord};
 
-pub fn circle(doc:Document, center:&PordOrCord, radius:f64, ctx:&context::Context) -> Document {
+pub fn circle(doc:Document, center:&PordOrCord, radius:f64, ctx:&Context) -> Document {
     let center = center.abs_svg_xy(ctx.origin());
     let circle = Circle::new()
         .set("fill", ctx.colour().fill())
@@ -17,7 +17,27 @@ pub fn circle(doc:Document, center:&PordOrCord, radius:f64, ctx:&context::Contex
     doc.add(circle)
 }
 
-pub fn arc_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:f64, ctx:&context::Context) -> Document {
+pub fn arc_big_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:f64, ctx:&Context) -> Document {
+    let start = start.abs_svg_xy(ctx.origin());
+    let end = end.abs_svg_xy(ctx.origin());
+    let data = Data::new()
+        .move_to(start)
+        .elliptical_arc_to((
+            radius,radius,
+            0.0, //angle offset
+            1.0, //large arc
+            sweep_dir,
+            end.0,end.1,
+        ));
+    let arc = Path::new()
+        .set("d", data)
+        .set("fill", ctx.colour().fill())
+        .set("stroke", ctx.colour().stroke())
+        .set("stroke-width", ctx.stroke().strokewidth());
+    doc.add(arc)
+}
+
+pub fn arc_small_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:f64, ctx:&Context) -> Document {
     let start = start.abs_svg_xy(ctx.origin());
     let end = end.abs_svg_xy(ctx.origin());
     let data = Data::new()
@@ -37,7 +57,7 @@ pub fn arc_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sw
     doc.add(arc)
 }
 
-pub fn arc_path(doc:Document,thickness:f64, start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:bool, ctx:&context::Context) -> Document {
+pub fn arc_path(doc:Document,thickness:f64, start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:bool, ctx:&Context) -> Document {
     let start = start.abs_svg_xy(ctx.origin());
     let end = end.abs_svg_xy(ctx.origin());
     let (o_radius, i_radius) = (radius+thickness,radius-thickness);

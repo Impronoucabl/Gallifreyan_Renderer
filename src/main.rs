@@ -1,47 +1,75 @@
+use std::f64::consts::PI;
 use std::io::Error;
+use std::rc::Rc;
 
-use svg::Document;
+use gallifreyan_renderer as Gal;
+use Gal::ctx::{Context, ColourContext, StrokeContext};
+use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
+use Gal::{basic, decorator, word::{self, StemType}};
 
-mod maths;
-mod pord;
-mod ctx;
-mod basic;
-mod decorator;
-mod word;
-mod instructions;
-
-const WIDTH: i64 = 2048;
-const HEIGHT:i64 = 2048;
-const SOLID_BACKGROUND: bool = true;
+const WIDTH: u64 = 2048;
+const HEIGHT:u64 = 2048;
 const fn canvas_colour() -> &'static str {"yellow"}
 
+const VOWEL_RADIUS :f64 = 8.0;
+const LETTER_RADIUS :f64 = 40.0;
+
 fn main() -> Result<(), Error> {
-    let filename = "test";
-    println!("Starting...");
-    let doc = canvasinit();
+    let filename = "test2";
     let filepath = "Imgs\\".to_owned() + &filename.trim();
-    let done_doc = instructions::do_this(doc, (WIDTH as f64/2.0,HEIGHT as f64/2.0));
-    save(filepath, &done_doc)
+    println!("Starting...");
+    let (mut doc, svg_origin) = Gal::canvas_init(WIDTH, HEIGHT, canvas_colour());
+    let origin = svg_origin.as_ref();
+    let gal_origin = Rc::new(Gord(0.0,0.0));
+    let colour = ColourContext::new("white","none","black");
+    let colour2 = ColourContext::new("white","none","red");
+    let mut stroke = StrokeContext::new(20.0);
+    let prime_ctx = Context::new(colour,stroke,origin);
+    let word_ctx = prime_ctx.new_strokewidth(10.0); 
+    let lett_ctx =  prime_ctx.new_strokewidth(8.0); 
+
+    stroke.set_i_stroke(3.0);
+    stroke.set_o_stroke(5.0);
+    let lett2_ctx = Context::new(colour2,stroke,origin);
+    //let lett2_ctx =  prime_ctx.new_strokewidth(10.0);
+    
+    let filled = ColourContext::new("white","black","none");
+    let strokeless = StrokeContext::new(0.0);
+    let path_ctx = Context::new(filled,strokeless,origin);
+    
+    let poi = Rc::new(Pord(POrd::new(400.0,1.5*PI, &gal_origin)));
+    let word_p = Rc::new(Pord(POrd::new(400.0,PI, &gal_origin)));
+    
+    let mut test = word::Word::new("test",poi.clone(),200.0,word_ctx.clone()); 
+    test.new_letter(155.0,PI*0.5,60.0,StemType::B,None);
+    test.new_letter(130.0,PI*0.0,LETTER_RADIUS,StemType::J,None);
+    let mut test2 = word::Word::new("test2",word_p.clone(),300.0,word_ctx.clone());
+    test2.new_letter(200.0,PI*1.5,80.0,StemType::S,None);
+    test2.new_letter(240.0,0.0,VOWEL_RADIUS,StemType::J,None);
+    doc = test.draw(doc);
+    doc = test2.draw(doc);    
+    
+    let mut line1 = decorator::Linebuilder::new(&lett2_ctx);
+    _ = line1.add_pord(poi.clone());
+    _ = line1.add_pord(word_p.clone());
+    let mut line2 = line1.clone();
+    _ = line2.add_pord(gal_origin.clone());
+    line2.switch_pord_1_2();
+    let real_line: decorator::StraightLine = line1.try_into().expect("I said so.");
+    let curved_line: decorator::CirculcarLine = line2.try_into().expect("I said so too.");
+
+    doc = real_line.draw(doc);
+    doc = curved_line.draw(doc);
+
+    doc = basic::circle(doc, gal_origin.as_ref(), 1000.0,&prime_ctx);
+    doc = basic::circle(doc, &Gord(0.0,-800.0), 100.0,&prime_ctx);
+    doc = basic::arc_big_circle(doc, &Gord(-400.0,-300.0),&Gord(0.0,500.0),500.0,1.0, &lett_ctx);
+    doc = basic::circle(doc, &Gord(600.0,0.0), 250.0, &word_ctx);
+    doc = basic::circle(doc, &poi,300.0, &lett2_ctx);
+    doc = basic::arc_path(doc,10.0,&poi,&Gord(0.0,-300.0),300.0,true,&path_ctx);
+
+    Gal::save(filepath, &doc)
 }
 
-fn canvasinit() -> Document {
-    let drawn = Document::new().set("viewBox", (0, 0, WIDTH, HEIGHT));   
-    if SOLID_BACKGROUND {
-        let background = svg::node::element::Rectangle::new()
-        .set("x", 0)
-        .set("y", 0)
-        .set("width", WIDTH)
-        .set("height", HEIGHT)
-        .set("fill", canvas_colour())
-        .set("stroke", "none");
-        drawn.add(background)
-    } else {
-        drawn
-    }
-}
 
-pub fn save(filepath: String, doc:&Document) -> Result<(), Error> {
-    let filename = filepath + ".svg";
-    println!("Saving under {}", filename);
-    svg::save(filename, doc)
-}
+

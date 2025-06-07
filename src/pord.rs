@@ -1,14 +1,14 @@
 use std::rc::{Rc, Weak};
 use std::f64::consts::PI;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum PordOrCord{
     Pord(POrd),
     Cord(f64,f64),
     Gord(f64,f64)
 }
 //Always use svg for POrds
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct POrd {
     r: Rc<f64>,
     theta: Rc<f64>,
@@ -33,6 +33,11 @@ pub trait Cartesian {
         } else {
             raw
         }
+    }
+    fn dist_to_sq(&self, other:&impl Cartesian) -> f64 {
+        let svg_origin = (0.0,0.0);
+        let ((lett_x, lett_y), (word_x,word_y)) = (other.abs_svg_xy(svg_origin),self.abs_svg_xy(svg_origin));
+        (word_y - lett_y).powi(2) + (word_x - lett_x).powi(2)
     }
 }
 
@@ -77,6 +82,14 @@ impl POrd {
         let angle = Rc::new(theta);
         let anchor = Rc::downgrade(anchor);
         POrd{r, theta:angle, anchor}
+    }
+    pub fn add_dist(&mut self, added_dist:f64) {
+        let dist = Rc::get_mut(&mut self.r).expect("someoneelse using this");
+        *dist += added_dist;
+    }
+    pub fn set_theta(&mut self, new_theta:f64) {
+        let theta = Rc::get_mut(&mut self.theta).expect("SomeoneElse using this");
+        *theta = new_theta;
     }
 }
 

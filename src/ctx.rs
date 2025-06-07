@@ -1,16 +1,16 @@
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Context {
     colour: ColourContext,
     stroke: StrokeContext,
     origin: (f64,f64)
 }
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ColourContext {
     bg:String,
     fill:String,
     stroke:String,
 }
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct StrokeContext {
     inner_strokewidth:f64,
     outer_strokewidth:f64,
@@ -61,8 +61,8 @@ impl StrokeContext {
 }
 
 impl Context {
-    pub fn new(colour:ColourContext, stroke:StrokeContext, origin:(f64,f64)) -> Context {
-        Context { colour, stroke, origin }
+    pub fn new(colour:ColourContext, stroke:StrokeContext, origin:&(f64,f64)) -> Context {
+        Context { colour, stroke, origin:*origin }
     }
     pub fn colour(&self) -> &ColourContext {
         &self.colour
