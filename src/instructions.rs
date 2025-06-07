@@ -6,6 +6,7 @@ use crate::pord::PordOrCord::{Pord,Cord, Gord};
 use crate::pord::POrd;
 use crate::ctx::{Context, ColourContext, StrokeContext};
 use crate::basic;
+use crate::decorator;
 use crate::word::{Word,StemType};
 
 pub const VOWEL_RADIUS :f64 = 8.0;
@@ -40,7 +41,7 @@ pub fn do_this(mut doc:svg::Document, origin:(f64,f64)) -> svg::Document {
     let word_p = Rc::new(Pord(POrd::new(400.0,PI, &svg_origin)));
     
     let mut test = Word::new("test",poi.clone(),200.0,word_ctx.clone()); 
-    test.new_letter(160.0,PI*0.5,60.0,StemType::B,None);
+    test.new_letter(157.0,PI*0.5,60.0,StemType::B,None);
     test.new_letter(130.0,PI*0.0,LETTER_RADIUS,StemType::J,None);
     let mut test2 = Word::new("test2",word_p.clone(),300.0,word_ctx.clone());
     test2.new_letter(270.0,PI*1.5,80.0,StemType::B,None);
@@ -48,6 +49,12 @@ pub fn do_this(mut doc:svg::Document, origin:(f64,f64)) -> svg::Document {
     doc = test.draw(doc);
     doc = test2.draw(doc);    
     
+    let mut line1 = decorator::Linebuilder::new(&lett2_ctx);
+    line1.add_pord(poi.clone());
+    line1.add_pord(word_p.clone());
+    let real_line:decorator::StraightLine = line1.try_into().expect("I said so");
+    doc = real_line.draw(doc);
+
     doc = basic::circle(doc, &gal_origin, 1000.0,&prime_ctx);
     doc = basic::circle(doc, &Gord(0.0,-800.0), 100.0,&prime_ctx);
     doc = basic::arc_circle(doc, &Gord(-400.0,-300.0),&Gord(0.0,500.0),500.0,1.0, &lett_ctx);

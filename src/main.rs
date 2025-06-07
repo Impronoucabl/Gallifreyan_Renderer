@@ -2,9 +2,11 @@ use std::io::Error;
 
 use svg::Document;
 
+mod maths;
 mod pord;
 mod ctx;
 mod basic;
+mod decorator;
 mod word;
 mod instructions;
 
