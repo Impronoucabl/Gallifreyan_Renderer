@@ -2,11 +2,11 @@ use std::f64::consts::PI;
 use std::io::Error;
 use std::rc::Rc;
 
-use gallifreyan_renderer::pord::Cartesian;
 use gallifreyan_renderer as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
 use Gal::{basic, decorator, word::{self, StemType}};
+use Gal::pord_vec2dot;
 
 const WIDTH: u64 = 2048;
 const HEIGHT:u64 = 2048;
@@ -118,26 +118,10 @@ fn hello_world() -> Result<(), Error> {
     let filled = ColourContext::new("white","black","none");
     let strokeless = StrokeContext::new(0.0);
     let path_ctx = Context::new(filled,strokeless,origin);
-    for mut loc in l_points {
-        loc.add_dist(-55.0);
-        let pord = Rc::new(Pord(loc));
-        doc = basic::circle(doc,pord.as_ref(),Vowel_RADIUS - 10.0,&path_ctx);
-    }
-    for mut loc in d_points {
-        loc.add_dist(-55.0);
-        let pord = Rc::new(Pord(loc));
-        doc = basic::circle(doc,pord.as_ref(),Vowel_RADIUS - 10.0,&path_ctx);
-    }
-    for mut loc in r_points {
-        loc.add_dist(-55.0);
-        let pord = Rc::new(Pord(loc));
-        doc = basic::circle(doc,pord.as_ref(),Vowel_RADIUS - 10.0,&path_ctx);
-    }
-    for mut loc in new_l_points {
-        loc.add_dist(-55.0);
-        let pord = Rc::new(Pord(loc));
-        doc = basic::circle(doc,pord.as_ref(),Vowel_RADIUS - 10.0,&path_ctx);
-    }
+    pord_vec2dot!(l_points,-65.0,Vowel_RADIUS - 10.0, &path_ctx,doc);
+    pord_vec2dot!(d_points,-65.0,Vowel_RADIUS - 10.0, &path_ctx,doc);
+    pord_vec2dot!(r_points,-65.0,Vowel_RADIUS - 10.0, &path_ctx,doc);
+    pord_vec2dot!(new_l_points,-65.0,Vowel_RADIUS - 10.0, &path_ctx,doc);
     
     println!("Drawing lines...");
     doc = basic::circle(doc, gal_origin.as_ref(), 970.0,&prime_ctx);

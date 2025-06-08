@@ -49,7 +49,10 @@ impl Word {
         Rc::downgrade(&pord)
     }
     pub fn new_letter_from_data(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Rc<PordOrCord> {
-        let location = Rc::new(PordOrCord::Pord(POrd::new(r,theta,self.pord.clone())));
+        let dist = if stem_type == StemType::S {
+            r + self.ctx().stroke().strokewidth()/2.0
+        } else {r};
+        let location = Rc::new(PordOrCord::Pord(POrd::new(dist,theta,self.pord.clone())));
         self.new_letter(location.clone(), radius, stem_type, ctx);
         location
     }
@@ -102,6 +105,7 @@ impl Word {
     fn loop_word_arc(self, mut doc:Document) -> Document {
         let mut l_iter = self.arcs.iter();
         let letter = l_iter.next().expect("no letters in word arc");
+        let mut prev_pord = letter.pord();
         let mut circle_letters = Vec::new();
         let mut i_letter_start_angle = self.calc_letter_ang(letter.pord.as_ref());
         let mut o_letter_start_angle = i_letter_start_angle;
@@ -137,6 +141,11 @@ impl Word {
             circle_letters.push(letter_circle);
         };  
         while let Some(letter) = l_iter.next() {
+            if Rc::ptr_eq(&prev_pord, &letter.pord()) {
+                prev_pord = letter.pord();
+                continue;
+            }
+            prev_pord = letter.pord();
             i_letter_start_angle = self.calc_letter_ang(letter.pord.as_ref());
             o_letter_start_angle = i_letter_start_angle;
             let (i_thi, o_thi) = match letter.stem_type {
