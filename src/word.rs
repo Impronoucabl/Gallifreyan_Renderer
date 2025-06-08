@@ -139,10 +139,14 @@ impl Word {
         (cir, data, end_angle) = self.draw_letter_arc(letter, data);
         if let Some(letter_circle) = cir {
             circle_letters.push(letter_circle);
-        };  
+        }; 
         while let Some(letter) = l_iter.next() {
             if Rc::ptr_eq(&prev_pord, &letter.pord()) {
                 prev_pord = letter.pord();
+                (cir, data,_) = self.draw_letter_arc( letter, data);
+                if let Some(letter_circle) =  cir {
+                    circle_letters.push(letter_circle);
+                };
                 continue;
             }
             prev_pord = letter.pord();
@@ -158,7 +162,10 @@ impl Word {
             };
             i_letter_start_angle -= i_thi;
             o_letter_start_angle -= o_thi;
-            data = self.draw_word_arc(data,end_angle,(i_letter_start_angle,o_letter_start_angle));
+            if i_letter_start_angle > end_angle.0 {
+                //this will break if we start doing overlapping s_divots
+                data = self.draw_word_arc(data,end_angle,(i_letter_start_angle,o_letter_start_angle));
+            }
             (cir, data,end_angle) = self.draw_letter_arc( letter, data);
             if let Some(letter_circle) =  cir {
                 circle_letters.push(letter_circle);
