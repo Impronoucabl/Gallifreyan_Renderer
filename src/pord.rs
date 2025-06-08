@@ -77,10 +77,10 @@ impl Cartesian for POrd {
 }
 
 impl POrd {
-    pub fn new(radius:f64,theta:f64, anchor:&Rc<PordOrCord>) -> POrd {
+    pub fn new(radius:f64,theta:f64, anchor:Rc<PordOrCord>) -> POrd {
         let r = Rc::new(radius);
         let angle = Rc::new(theta);
-        let anchor = Rc::downgrade(anchor);
+        let anchor = Rc::downgrade(&anchor);
         POrd{r, theta:angle, anchor}
     }
     pub fn add_dist(&mut self, added_dist:f64) {

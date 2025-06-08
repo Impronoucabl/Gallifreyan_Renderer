@@ -37,22 +37,37 @@ impl Word {
             path_circle:false,
         }
     }
-    pub fn new_letter(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
-        let location = Rc::new(PordOrCord::Pord(POrd::new(r,theta,&self.pord.clone())));
-        let letter = LetterArc::new(location.clone(),radius,stem_type,ctx);
+    pub fn ctx(&self) -> Context {
+        self.default_ctx.clone()
+    }
+    fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
+        let letter = LetterArc::new(pord.clone(),radius,stem_type,ctx);
         self.arcs.push(letter);
         if stem_type == StemType::S || stem_type == StemType::B {
             self.path_circle = true;
         }
-        Rc::downgrade(&location)
+        Rc::downgrade(&pord)
     }
-    pub fn new_letter_with_attach(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
-        let letter_pord = self.new_letter(r, theta, radius, stem_type, ctx);
-        let l_pord = Weak::upgrade(&letter_pord).expect("Just made it");
+    pub fn new_letter_from_data(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Rc<PordOrCord> {
+        let location = Rc::new(PordOrCord::Pord(POrd::new(r,theta,self.pord.clone())));
+        self.new_letter(location.clone(), radius, stem_type, ctx);
+        location
+    }
+    pub fn new_letter_with_attach(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> (Rc<PordOrCord>,Vec<POrd>) {
+        let letter_pord = self.new_letter_from_data(r, theta, radius, stem_type, ctx);
         let mut result = Vec::with_capacity(num_of_attach);
         let mut angle_gen = utils::ang_iter(num_of_attach);
         while let Some(ang) = angle_gen.next() {
-            result.push(POrd::new(radius, ang, &l_pord.clone()))
+            result.push(POrd::new(radius, ang, letter_pord.clone()))
+        }
+        (letter_pord,result)
+    }
+    pub fn new_letter_from_pord(&mut self,pord:Rc<PordOrCord>, radius:f64, stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
+        self.new_letter(pord.clone(), radius, stem_type, ctx);
+        let mut result = Vec::with_capacity(num_of_attach);
+        let mut angle_gen = utils::ang_iter(num_of_attach);
+        while let Some(ang) = angle_gen.next() {
+            result.push(POrd::new(radius, ang, pord.clone()))
         }
         result
     }
@@ -292,6 +307,10 @@ impl Word {
         };
         (letter.radius - stroke.i_stroke(), letter.radius + stroke.o_stroke())
     }
+    pub fn get_last_letter_pord(&self) -> Option<Rc<PordOrCord>> {
+        let lett = self.arcs.last()?;
+        Some(lett.pord())
+    }
     fn get_radii(&self) -> (f64,f64) {
         let stroke = self.default_ctx.stroke();
         (self.radius - stroke.i_stroke(),self.radius + stroke.o_stroke())
@@ -316,5 +335,8 @@ impl LetterArc {
             stem_type, 
             ctx
         }
+    }
+    fn pord(&self) -> Rc<PordOrCord> {
+        self.pord.clone()
     }
 }
