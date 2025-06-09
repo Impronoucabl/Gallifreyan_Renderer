@@ -21,7 +21,7 @@ pub fn test() -> Result<(), Error> {
     let (mut doc, svg_origin) = Gal::canvas_init(WIDTH, HEIGHT, canvas_colour());
     let origin = svg_origin.as_ref();
     let gal_origin = Rc::new(Gord(0.0,0.0));
-    let colour = ColourContext::new("white","none","black");
+    let colour = ColourContext::default();
     let colour2 = ColourContext::new("white","none","red");
     let mut stroke = StrokeContext::new(20.0);
     let prime_ctx = Context::new(colour,stroke,origin);

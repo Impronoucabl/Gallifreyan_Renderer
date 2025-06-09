@@ -59,21 +59,16 @@ impl Word {
     }
     pub fn new_letter_with_attach(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> (Rc<PordOrCord>,Vec<POrd>) {
         let letter_pord = self.new_letter_from_data(r, theta, radius, stem_type, ctx);
-        let mut result = Vec::with_capacity(num_of_attach);
-        let mut angle_gen = utils::ang_iter(num_of_attach);
-        while let Some(ang) = angle_gen.next() {
-            result.push(POrd::new(radius, ang, letter_pord.clone()))
-        }
+        let result = utils::generate_pord_vector(num_of_attach,letter_pord.clone(),radius);
         (letter_pord,result)
     }
-    pub fn new_letter_from_pord(&mut self,pord:Rc<PordOrCord>, radius:f64, stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
+    pub fn new_letter_from_pordorcord(&mut self,pord:Rc<PordOrCord>, radius:f64, stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
         self.new_letter(pord.clone(), radius, stem_type, ctx);
-        let mut result = Vec::with_capacity(num_of_attach);
-        let mut angle_gen = utils::ang_iter(num_of_attach);
-        while let Some(ang) = angle_gen.next() {
-            result.push(POrd::new(radius, ang, pord.clone()))
-        }
-        result
+        utils::generate_pord_vector(num_of_attach,pord.clone(),radius)
+    }
+    pub fn new_letter_from_pord(&mut self, pord:POrd,radius:f64,stem_type:StemType, ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
+        let poc = Rc::new(PordOrCord::Pord(pord));
+        self.new_letter_from_pordorcord(poc, radius, stem_type, ctx, num_of_attach)
     }
     fn sort_letters(&mut self) {
         let location= self.pord.as_ref();
@@ -283,19 +278,19 @@ impl Word {
         //"outer thi"
         let thi1_top = -lett_r_i.powi(2) + dist_sq + word_r_o.powi(2);
         let thi1_bot = dist_sq.sqrt()*2.0*word_r_o;
-        let thi1 = utils::thi_check(thi1_top, thi1_bot);
+        let thi1 = thi_check(thi1_top, thi1_bot);
         //"inner thi"
         let thi2_top = -lett_r_o.powi(2) + dist_sq + word_r_i.powi(2);
         let thi2_bot = 2.0*dist_sq.sqrt()*word_r_i;
-        let thi2 = utils::thi_check(thi2_top, thi2_bot);
+        let thi2 = thi_check(thi2_top, thi2_bot);
         //inner word boundary thi
         let thi3_top = -lett_r_i.powi(2) + dist_sq + word_r_i.powi(2);
         let thi3_bot = 2.0*dist_sq.sqrt()*word_r_i;
-        let thi3 = utils::thi_check(thi3_top, thi3_bot);
+        let thi3 = thi_check(thi3_top, thi3_bot);
         //outer word boundary thi
         let thi4_top = -lett_r_o.powi(2) + dist_sq + word_r_o.powi(2);
         let thi4_bot = 2.0*dist_sq.sqrt()*word_r_o;
-        let thi4 = utils::thi_check(thi4_top, thi4_bot);
+        let thi4 = thi_check(thi4_top, thi4_bot);
         (thi1,thi2,thi3,thi4)
     }
     fn calc_word_arc_svg_point(&self, angle:f64, inner:bool) -> (f64,f64) {
@@ -356,4 +351,10 @@ impl LetterArc {
     fn pord(&self) -> Rc<PordOrCord> {
         self.pord.clone()
     }
+}
+
+fn thi_check(top:f64,bot:f64) -> Option<f64> {
+    if top.abs() <= bot {
+        Some((top/bot).acos())
+    } else {None}
 }
