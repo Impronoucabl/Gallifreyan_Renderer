@@ -3,6 +3,8 @@ use std::{f64::consts::PI, rc::Rc};
 
 use crate::pord::{POrd, PordOrCord};
 
+pub enum SweepDirection{Clockwise,AntiClockwise}
+
 pub fn ang_iter(num:usize) -> impl Iterator<Item = f64> {
     let step = 2.0*PI/num as f64;
     let obj = 0..num;

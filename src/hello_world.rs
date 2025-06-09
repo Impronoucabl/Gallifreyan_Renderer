@@ -16,7 +16,7 @@ const VOWEL_RADIUS  :f64 = 40.0;
 const LETTER_RADIUS :f64 = 120.0;
 
 pub fn hello_world() -> Result<(), Error> {
-    let filename = "hello";
+    let filename = "hello_world";
     let filepath = "Imgs\\".to_owned() + &filename.trim();
     println!("Initialising...");
     let (mut doc, svg_origin) = Gal::canvas_init(WIDTH, HEIGHT, "white");

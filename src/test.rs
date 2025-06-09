@@ -6,6 +6,7 @@ use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
 use Gal::{basic, decorator, word, StemType};
+use Gal::utils::SweepDirection::AntiClockwise as ACW;
 
 const WIDTH: u64 = 2048;
 const HEIGHT:u64 = 2048;
@@ -63,10 +64,10 @@ pub fn test() -> Result<(), Error> {
 
     doc = basic::circle(doc, gal_origin.as_ref(), 1000.0,&prime_ctx);
     doc = basic::circle(doc, &Gord(0.0,-800.0), 100.0,&prime_ctx);
-    doc = basic::arc_big_circle(doc, &Gord(-400.0,-300.0),&Gord(0.0,500.0),500.0,1.0, &lett_ctx);
+    doc = basic::arc_big_circle(doc, &Gord(-400.0,-300.0),&Gord(0.0,500.0),500.0,ACW, &lett_ctx);
     doc = basic::circle(doc, &Gord(600.0,0.0), 250.0, &word_ctx);
     doc = basic::circle(doc, &poi,300.0, &lett2_ctx);
-    doc = basic::arc_path(doc,10.0,&poi,&Gord(0.0,-300.0),300.0,true,&path_ctx);
+    doc = basic::arc_path(doc,10.0,&poi,&Gord(0.0,-300.0),300.0,ACW,&path_ctx);
 
     Gal::save(filepath, &doc)
 }
