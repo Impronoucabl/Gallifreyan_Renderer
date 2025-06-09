@@ -67,7 +67,7 @@ impl Word {
         utils::generate_pord_vector(num_of_attach,pord.clone(),radius)
     }
     pub fn new_letter_from_pord(&mut self, pord:POrd,radius:f64,stem_type:StemType, ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
-        let poc = Rc::new(PordOrCord::Pord(pord));
+        let poc = Rc::new(pord.into());
         self.new_letter_from_pordorcord(poc, radius, stem_type, ctx, num_of_attach)
     }
     fn sort_letters(&mut self) {

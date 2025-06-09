@@ -93,4 +93,7 @@ impl Context {
     pub fn new_strokewidth(&self, strokewidth:f64) -> Context {
         Context { colour: self.colour.clone(), stroke: StrokeContext::new(strokewidth) , origin:self.origin() }
     }
+    pub fn set_origin(&mut self, svg_origin: (f64, f64)) {
+        self.origin = svg_origin;
+    }
 }

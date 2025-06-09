@@ -41,6 +41,20 @@ pub trait Cartesian {
     }
 }
 
+pub trait Polar {
+    fn r(&self) -> Rc<f64>;
+    fn theta(&self) -> Rc<f64>;
+    fn anchor(&self) -> Weak<PordOrCord>;
+    fn anchor_abs_svg_xy(&self, svg_origin:(f64,f64)) -> Option<(f64,f64)> {
+        let poc = self.anchor().upgrade()?;
+        Some(   match poc.as_ref() {
+            PordOrCord::Cord(x,y) => {(*x,*y)}
+            PordOrCord::Pord(p) => {p.abs_svg_xy(svg_origin)}
+            PordOrCord::Gord(x, y) => (svg_origin.0 + x, svg_origin.1 - y),
+        })
+    }
+}
+
 impl Cartesian for PordOrCord {
     fn rel_xy(&self) -> (f64,f64) {
         match &self {
@@ -93,6 +107,12 @@ impl POrd {
     }
 }
 
+impl From<POrd> for PordOrCord {
+    fn from(value: POrd) -> Self {
+        PordOrCord::Pord(value)
+    }
+}
+
 impl Polar for POrd {
     fn r(&self) -> Rc<f64> {self.r.clone()}
     fn theta(&self) -> Rc<f64> {self.theta.clone()}
@@ -101,16 +121,8 @@ impl Polar for POrd {
     }
 }
 
-pub trait Polar {
-    fn r(&self) -> Rc<f64>;
-    fn theta(&self) -> Rc<f64>;
-    fn anchor(&self) -> Weak<PordOrCord>;
-    fn anchor_abs_svg_xy(&self, svg_origin:(f64,f64)) -> Option<(f64,f64)> {
-        let poc = self.anchor().upgrade()?;
-        Some(   match poc.as_ref() {
-            PordOrCord::Cord(x,y) => {(*x,*y)}
-            PordOrCord::Pord(p) => {p.abs_svg_xy(svg_origin)}
-            PordOrCord::Gord(x, y) => (svg_origin.0 + x, svg_origin.1 - y),
-        })
+impl PordOrCord {
+    pub fn gal_origin() -> Rc<PordOrCord> {
+        Rc::new(PordOrCord::Gord(0.0, 0.0))
     }
 }

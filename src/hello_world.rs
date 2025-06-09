@@ -5,7 +5,7 @@ use std::rc::Rc;
 use gallifreyan::decorator::Linebuilder;
 use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
-use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
+use Gal::pord::{POrd, PordOrCord};
 use Gal::{basic, decorator, word, StemType};
 use Gal::{pord_vec2dot,pord_from_vec_pop};
 
@@ -21,7 +21,7 @@ pub fn hello_world() -> Result<(), Error> {
     println!("Initialising...");
     let (mut doc, svg_origin) = Gal::canvas_init(WIDTH, HEIGHT, "white");
     let origin = svg_origin.as_ref();
-    let gal_origin = Rc::new(Gord(0.0,0.0));
+    let gal_origin = PordOrCord::gal_origin();
     let colour = ColourContext::default();
     let stroke = StrokeContext::new(60.0);
     let prime_ctx = Context::new(colour,stroke,origin);
@@ -30,7 +30,7 @@ pub fn hello_world() -> Result<(), Error> {
     let v_ctx = prime_ctx.new_strokewidth(20.0);
 
     println!("Starting...");
-    let hello_pord = Rc::new(Pord(POrd::new(450.0, 0.0, gal_origin.clone())));
+    let hello_pord = Rc::new(PordOrCord::Pord(POrd::new(450.0, 0.0, gal_origin.clone())));
     let mut hello = word::Word::new("hello",hello_pord.clone(),400.0,w_ctx.clone());
     let (h_pord,mut h_points) = hello.new_letter_with_attach(315.0, 0.0, LETTER_RADIUS, StemType::B, Some(l_ctx.clone()), 2);
     hello.new_letter_from_pordorcord(h_pord.clone(), VOWEL_RADIUS, StemType::J, Some(v_ctx.clone()), 0);
@@ -39,7 +39,7 @@ pub fn hello_world() -> Result<(), Error> {
     let o_pord = o_pord_vec.pop().unwrap();
     hello.new_letter_from_pord(o_pord, VOWEL_RADIUS, StemType::J, Some(v_ctx.clone()), 0);
     
-    let world_pord = Rc::new(Pord(POrd::new(450.0, PI, gal_origin.clone())));
+    let world_pord = Rc::new(PordOrCord::Pord(POrd::new(450.0, PI, gal_origin.clone())));
     let mut world = word::Word::new("world",world_pord.clone(),400.0,w_ctx);
     let (_w_pord,mut w_points) = world.new_letter_with_attach(400.0, 0.0, LETTER_RADIUS, StemType::S, None, 3);
     let mut new_o = w_points.pop().unwrap();
