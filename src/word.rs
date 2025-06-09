@@ -8,15 +8,16 @@ use svg::node::element::{Circle, Path};
 use crate::ctx::Context;
 use crate::pord::{Cartesian, POrd, PordOrCord};
 use crate::utils;
+use crate::StemType;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StemType {B,J,S,Z}
+#[derive(Debug, Clone)]
 pub struct LetterArc {
     pord: Rc<PordOrCord>,
     radius:f64,
     stem_type:StemType,
     ctx:Option<Context>,
 }
+#[derive(Debug, Clone)]
 pub struct Word {
     name:String,
     pord:Rc<PordOrCord>,
