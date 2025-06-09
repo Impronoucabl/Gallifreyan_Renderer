@@ -23,3 +23,10 @@ macro_rules! pord_vec2dot {
         }
     };
 }
+
+#[macro_export]
+macro_rules! pord_from_vec_pop {
+    ($pord_vec:expr,$pord_name:ident) => {
+        let $pord_name = Rc::new(Pord($pord_vec.pop().unwrap()))
+    };
+}

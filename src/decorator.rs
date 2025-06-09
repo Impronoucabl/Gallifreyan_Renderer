@@ -8,20 +8,20 @@ use crate::basic;
 use crate::ctx::Context;
 use crate::pord::{Cartesian, PordOrCord};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Linebuilder {
     pord1:Option<Rc<PordOrCord>>,
     pord2:Option<Rc<PordOrCord>>,
     pord3:Option<Rc<PordOrCord>>,
     ctx:Context
 }
-
+#[derive(Debug, Clone)]
 pub struct StraightLine {
     pord1:Rc<PordOrCord>,
     pord2:Rc<PordOrCord>,
     ctx:Context
 }
-
+#[derive(Debug, Clone)]
 pub struct CirculcarLine {
     pord1:Rc<PordOrCord>,
     pord2:Rc<PordOrCord>,

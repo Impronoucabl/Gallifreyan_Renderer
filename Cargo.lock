@@ -135,7 +135,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gallifreyan_renderer"
+name = "gallifreyan"
 version = "0.1.0"
 dependencies = [
  "rand",

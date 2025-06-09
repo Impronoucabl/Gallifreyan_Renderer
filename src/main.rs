@@ -2,11 +2,11 @@ use std::f64::consts::PI;
 use std::io::Error;
 use std::rc::Rc;
 
-use gallifreyan_renderer::decorator::Linebuilder;
-use gallifreyan_renderer as Gal;
+use gallifreyan::decorator::Linebuilder;
+use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
-use Gal::{basic, decorator, word::{self, StemType}};
+use Gal::{basic, decorator, word, StemType};
 use Gal::pord_vec2dot;
 
 const WIDTH: u64 = 2048;

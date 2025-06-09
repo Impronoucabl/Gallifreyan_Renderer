@@ -10,6 +10,9 @@ pub mod decorator;
 pub mod word;
 pub mod utils;
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum StemType {B,J,S,Z}
+
 pub fn canvas_init(width:u64, height:u64, solid_background:&str) -> (Document, Rc<(f64,f64)>) {
     let drawn = Document::new().set("viewBox", (0, 0, width, height));   
     let background = svg::node::element::Rectangle::new()

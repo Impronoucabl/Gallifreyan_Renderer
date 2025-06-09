@@ -1,16 +1,16 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Context {
     colour: ColourContext,
     stroke: StrokeContext,
     origin: (f64,f64)
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default, Hash, PartialEq)]
 pub struct ColourContext {
     bg:String,
     fill:String,
     stroke:String,
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct StrokeContext {
     inner_strokewidth:f64,
     outer_strokewidth:f64,

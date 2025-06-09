@@ -8,7 +8,7 @@ pub enum PordOrCord{
     Gord(f64,f64)
 }
 //Always use svg for POrds
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct POrd {
     r: Rc<f64>,
     theta: Rc<f64>,
