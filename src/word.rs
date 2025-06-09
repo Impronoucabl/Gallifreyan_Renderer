@@ -274,7 +274,7 @@ impl Word {
         let (word_r_i, word_r_o) = self.get_radii();
         let lett_r_i = letter.radius - l_stroke.i_stroke();
         let lett_r_o = letter.radius + l_stroke.o_stroke();
-        let dist_sq = self.calc_dist_sq(letter.pord.clone());
+        let dist_sq = self.calc_dist_sq(letter.pord.as_ref());
         //"outer thi"
         let thi1_top = -lett_r_i.powi(2) + dist_sq + word_r_o.powi(2);
         let thi1_bot = dist_sq.sqrt()*2.0*word_r_o;
@@ -309,8 +309,8 @@ impl Word {
     fn calc_letter_ang(&self, pord:&PordOrCord) -> f64 {
         self.angle_to(pord)
     }
-    fn calc_dist_sq(&self, pord:Rc<PordOrCord>) -> f64 {
-        self.pord.dist_to_sq(pord.as_ref())
+    fn calc_dist_sq(&self, pord:&PordOrCord) -> f64 {
+        self.pord.dist_to_sq(pord)
     }
     fn get_letter_radii(&self, letter:&LetterArc) -> (f64,f64) {
         let stroke = match &letter.ctx {
