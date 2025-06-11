@@ -18,7 +18,7 @@ pub struct LetterArc {
     ctx:Option<Context>,
 }
 #[derive(Debug, Clone)]
-pub struct Word {
+pub struct WordCircle {
     name:String,
     pord:Rc<PordOrCord>,
     radius:f64,
@@ -27,54 +27,202 @@ pub struct Word {
     path_circle: bool,
 }
 
-impl Word {
-    pub fn new(name:&str, pord:Rc<PordOrCord>, radius:f64,ctx:Context) -> Word {
-        Word { 
-            name: name.to_string(), 
-            pord, 
-            radius, 
-            arcs: Vec::new(), 
-            default_ctx: ctx,
-            path_circle:false,
+pub struct WordArc {
+    name:String,
+    pord:Rc<PordOrCord>,
+    radius:f64,
+    arcs: Vec<LetterArc>,
+    default_ctx:Context,
+    start_angle:f64,
+    end_angle:f64
+}
+
+pub trait Word:Cartesian {
+    fn pord(&self) -> Rc<PordOrCord>;
+    fn radius(&self) -> f64;
+    fn arcs(&mut self) -> &mut Vec<LetterArc>;
+    fn ctx(&self) -> Context;
+    fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord>;
+    fn new_letter_from_data(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Rc<PordOrCord> {
+        let dist = if stem_type == StemType::S {
+            r + self.ctx().stroke().strokewidth()/2.0
+        } else {r};
+        let location = Rc::new(PordOrCord::Pord(POrd::new(dist,theta,self.pord())));
+        self.new_letter(location.clone(), radius, stem_type, ctx);
+        location
+    }
+    fn new_letter_from_pordorcord(&mut self,pord:Rc<PordOrCord>, radius:f64, stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
+        self.new_letter(pord.clone(), radius, stem_type, ctx);
+        utils::generate_pord_vector(num_of_attach,pord.clone(),radius)
+    }
+    fn new_letter_from_pord(&mut self, pord:POrd,radius:f64,stem_type:StemType, ctx:Option<Context>, num_of_attach:usize) -> (Weak<PordOrCord>,Vec<POrd>) {
+        let poc: Rc<PordOrCord> = Rc::new(pord.into());
+        let loc = Rc::downgrade(&poc.clone());
+        (loc, self.new_letter_from_pordorcord(poc, radius, stem_type, ctx, num_of_attach))
+    }
+    fn new_letter_with_attach(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> (Rc<PordOrCord>,Vec<POrd>) {
+        let letter_pord = self.new_letter_from_data(r, theta, radius, stem_type, ctx);
+        let result = utils::generate_pord_vector(num_of_attach,letter_pord.clone(),radius);
+        (letter_pord,result)
+    }
+    fn sort_letters(&mut self) {
+        let location= self.pord();
+        self.arcs().sort_by_key(|a|location.angle_to(a.pord.as_ref()) as i32);
+    }
+    fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data);
+    fn draw(self,doc:Document) -> Document;
+    fn draw_word_arc(&self, data:(Data,Data), start_angle:(f64,f64),end_angle:(f64,f64)) -> (Data, Data) {
+        let (i_radius,o_radius) = self.get_radii();
+        let i_end = self.calc_word_arc_svg_point(end_angle.0, true);
+        let o_end = self.calc_word_arc_svg_point(end_angle.1, false);
+        let i_large_arc = end_angle.0 - start_angle.0 > PI;
+        let o_large_arc = end_angle.1 - start_angle.1 > PI;
+        let outer_arc = data.1        
+            .elliptical_arc_to((
+                o_radius,o_radius,
+                0.0, //angle offset
+                if o_large_arc {1.0} else {0.0}, //large arc
+                0.0, //sweep dir - 0 anti-clockwise
+                o_end.0,o_end.1,
+            ));
+        let inner_arc = data.0        
+            .elliptical_arc_to((
+                i_radius,i_radius,
+                0.0, //angle offset
+                if i_large_arc {1.0} else {0.0}, //large arc
+                0.0, //sweep dir - 0 anti-clockwise
+                i_end.0,i_end.1,
+            ));
+        (inner_arc,outer_arc)
+    }
+    fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data), (f64,f64)) {
+        let mut i_end_angle = self.angle_to(letter.pord.as_ref());
+        let s_divot = match letter.stem_type {
+            StemType::J | StemType::Z => {
+                return (Some(self.letter_circle_node(letter)),data,(i_end_angle,i_end_angle)); 
+            }, 
+            StemType::S => true,
+            StemType::B => false
+        };
+        let (i_radius,o_radius)= self.get_letter_radii(letter);
+        let mut o_end_angle = i_end_angle;
+        if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
+            i_end_angle += thi2;
+            o_end_angle += thi1;
+        }
+        let i_xy = self.calc_word_arc_svg_point(i_end_angle,true);
+        let o_xy = self.calc_word_arc_svg_point(o_end_angle,false);
+        let i_data = data.0
+            .elliptical_arc_to((
+                o_radius,o_radius,
+                0.0, //angle offset
+                if s_divot {0.0} else {1.0}, //large arc
+                1.0, //sweep dir - 0 anti-clockwise
+                i_xy.0,i_xy.1,
+            ));
+        let o_data = data.1
+            .elliptical_arc_to((
+                i_radius,i_radius,
+                0.0, //angle offset
+                if s_divot {0.0} else {1.0}, //large arc
+                1.0, //sweep dir - 0 anti-clockwise
+                o_xy.0,o_xy.1,
+            ));
+        (None,(i_data,o_data), (i_end_angle,o_end_angle))
+    }
+    fn letter_circle_node(&self, letter:&LetterArc) -> Circle {
+        let ctx = match &letter.ctx {
+            None => &self.ctx(),
+            Some(con) => &con.clone()
+        };
+        let (x,y) = letter.pord.abs_svg_xy(ctx.origin());
+        Circle::new()
+            .set("fill", ctx.colour().fill())
+            .set("stroke", ctx.colour().stroke())
+            .set("stroke-width", ctx.stroke().strokewidth())
+            .set("cx", x)
+            .set("cy", y)
+            .set("r", letter.radius)
+    }
+    fn calc_word_arc_svg_point(&self, angle:f64, inner:bool) -> (f64,f64) {
+        let con = self.ctx();
+        let stroke = con.stroke();
+        let (a,b) = angle.sin_cos();
+        let (x,y) = self.abs_svg_xy(con.origin());
+        //negatives cancel out
+        if inner {
+            let i_radius = self.radius() - stroke.i_stroke();
+            (x + i_radius * a,  y + i_radius * b)
+        } else {
+            let o_radius = self.radius() + stroke.o_stroke();
+            (x + o_radius * a,  y + o_radius * b)
         }
     }
-    pub fn ctx(&self) -> Context {
+    fn calc_letter_thi(&self, letter:&LetterArc) -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
+        let con = match &letter.ctx {
+            Some(con) => &con,
+            None => &self.ctx()
+        };
+        let l_stroke = con.stroke().clone();
+        let (word_r_i, word_r_o) = self.get_radii();
+        let lett_r_i = letter.radius - l_stroke.i_stroke();
+        let lett_r_o = letter.radius + l_stroke.o_stroke();
+        let dist_sq = self.pord().dist_to_sq(letter.pord.as_ref());
+        //"outer thi"
+        let thi1_top = -lett_r_i.powi(2) + dist_sq + word_r_o.powi(2);
+        let thi1_bot = dist_sq.sqrt()*2.0*word_r_o;
+        let thi1 = thi_check(thi1_top, thi1_bot);
+        //"inner thi"
+        let thi2_top = -lett_r_o.powi(2) + dist_sq + word_r_i.powi(2);
+        let thi2_bot = 2.0*dist_sq.sqrt()*word_r_i;
+        let thi2 = thi_check(thi2_top, thi2_bot);
+        //inner word boundary thi
+        let thi3_top = -lett_r_i.powi(2) + dist_sq + word_r_i.powi(2);
+        let thi3_bot = 2.0*dist_sq.sqrt()*word_r_i;
+        let thi3 = thi_check(thi3_top, thi3_bot);
+        //outer word boundary thi
+        let thi4_top = -lett_r_o.powi(2) + dist_sq + word_r_o.powi(2);
+        let thi4_bot = 2.0*dist_sq.sqrt()*word_r_o;
+        let thi4 = thi_check(thi4_top, thi4_bot);
+        (thi1,thi2,thi3,thi4)
+    }
+    fn get_letter_radii(&self, letter:&LetterArc) -> (f64,f64) {
+        let con = match &letter.ctx {
+            None => self.ctx(),
+            Some(con) => con.clone()
+        };
+        let stroke = con.stroke();
+        (letter.radius - stroke.i_stroke(), letter.radius + stroke.o_stroke())
+    }
+    fn get_radii(&self) -> (f64,f64) {
+        let con = self.ctx();
+        let stroke = con.stroke();
+        (self.radius() - stroke.i_stroke(),self.radius() + stroke.o_stroke())
+    }
+}
+
+impl Word for WordCircle {
+    fn pord(&self) -> Rc<PordOrCord> {
+        self.pord.clone()
+    }
+    fn ctx(&self) -> Context {
         self.default_ctx.clone()
+    }
+    fn arcs(&mut self) -> &mut Vec<LetterArc> {
+        &mut self.arcs
+    }
+    fn radius(&self) -> f64 {
+        self.radius
     }
     fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
         let letter = LetterArc::new(pord.clone(),radius,stem_type,ctx);
-        self.arcs.push(letter);
+        self.arcs().push(letter);
         if stem_type == StemType::S || stem_type == StemType::B {
             self.path_circle = true;
         }
         Rc::downgrade(&pord)
     }
-    pub fn new_letter_from_data(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Rc<PordOrCord> {
-        let dist = if stem_type == StemType::S {
-            r + self.ctx().stroke().strokewidth()/2.0
-        } else {r};
-        let location = Rc::new(PordOrCord::Pord(POrd::new(dist,theta,self.pord.clone())));
-        self.new_letter(location.clone(), radius, stem_type, ctx);
-        location
-    }
-    pub fn new_letter_with_attach(&mut self, r:f64,theta:f64,radius:f64,stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> (Rc<PordOrCord>,Vec<POrd>) {
-        let letter_pord = self.new_letter_from_data(r, theta, radius, stem_type, ctx);
-        let result = utils::generate_pord_vector(num_of_attach,letter_pord.clone(),radius);
-        (letter_pord,result)
-    }
-    pub fn new_letter_from_pordorcord(&mut self,pord:Rc<PordOrCord>, radius:f64, stem_type:StemType,ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
-        self.new_letter(pord.clone(), radius, stem_type, ctx);
-        utils::generate_pord_vector(num_of_attach,pord.clone(),radius)
-    }
-    pub fn new_letter_from_pord(&mut self, pord:POrd,radius:f64,stem_type:StemType, ctx:Option<Context>, num_of_attach:usize) -> Vec<POrd> {
-        let poc = Rc::new(pord.into());
-        self.new_letter_from_pordorcord(poc, radius, stem_type, ctx, num_of_attach)
-    }
-    fn sort_letters(&mut self) {
-        let location= self.pord.as_ref();
-        self.arcs.sort_by_key(|a|location.angle_to(a.pord.as_ref()) as i32);
-    }
-    pub fn draw(mut self,doc:Document) -> Document {
+    fn draw(mut self,doc:Document) -> Document {
         println!("drawing {}...",self.name);
         let xy = self.pord.abs_svg_xy(self.default_ctx.origin());
         if !self.path_circle {
@@ -82,6 +230,52 @@ impl Word {
         } else {
             self.sort_letters();
             self.loop_word_arc(doc)
+        }
+    }
+    fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data) {
+        let inner_start_xy = self.calc_word_arc_svg_point(angle.0, true);
+        let outer_start_xy = self.calc_word_arc_svg_point(angle.1, false);
+        let o_data = Data::new()
+            .move_to(outer_start_xy);
+        let i_data = Data::new()
+            .move_to(inner_start_xy);
+        (i_data,o_data)
+    }
+}
+
+impl Word for WordArc {
+    fn pord(&self) -> Rc<PordOrCord> {
+        self.pord.clone()
+    }
+    fn ctx(&self) -> Context {
+        self.default_ctx.clone()
+    }
+    fn arcs(&mut self) -> &mut Vec<LetterArc> {
+        &mut self.arcs
+    }
+    fn radius(&self) -> f64 {
+        self.radius
+    }
+    fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
+        todo!()
+    }
+    fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data) {
+        todo!()
+    }
+    fn draw(self,doc:Document) -> Document {
+        todo!()
+    }
+}
+
+impl WordCircle {
+    pub fn new(name:&str, pord:Rc<PordOrCord>, radius:f64,ctx:Context) -> WordCircle {
+        WordCircle { 
+            name: name.to_string(), 
+            pord, 
+            radius, 
+            arcs: Vec::new(), 
+            default_ctx: ctx,
+            path_circle:false,
         }
     }
     fn draw_circle_only(self, mut doc: Document, word_x:f64, word_y:f64) ->Document {
@@ -103,7 +297,7 @@ impl Word {
         let letter = l_iter.next().expect("no letters in word arc");
         let mut prev_pord = letter.pord();
         let mut circle_letters = Vec::new();
-        let mut i_letter_start_angle = self.calc_letter_ang(letter.pord.as_ref());
+        let mut i_letter_start_angle = self.angle_to(letter.pord.as_ref());
         let mut o_letter_start_angle = i_letter_start_angle;
         let (i_word_start_angle, o_word_start_angle) = match letter.stem_type {
             StemType::J | StemType::Z => (0.0, 0.0), 
@@ -146,7 +340,7 @@ impl Word {
                 continue;
             }
             prev_pord = letter.pord();
-            i_letter_start_angle = self.calc_letter_ang(letter.pord.as_ref());
+            i_letter_start_angle = self.angle_to(letter.pord.as_ref());
             o_letter_start_angle = i_letter_start_angle;
             let (i_thi, o_thi) = match letter.stem_type {
                 StemType::J | StemType::Z => (0.0, 0.0), 
@@ -184,158 +378,28 @@ impl Word {
         }
         doc
     }
-    fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data), (f64,f64)) {
-        let mut i_end_angle = self.calc_letter_ang(letter.pord.as_ref());
-        let s_divot = match letter.stem_type {
-            StemType::J | StemType::Z => {
-                return (Some(self.letter_circle_node(letter)),data,(i_end_angle,i_end_angle)); 
-            }, 
-            StemType::S => true,
-            StemType::B => false
-        };
-        let (i_radius,o_radius)= self.get_letter_radii(letter);
-        let mut o_end_angle = i_end_angle;
-        if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
-            i_end_angle += thi2;
-            o_end_angle += thi1;
-        }
-        let i_xy = self.calc_word_arc_svg_point(i_end_angle,true);
-        let o_xy = self.calc_word_arc_svg_point(o_end_angle,false);
-        let i_data = data.0
-            .elliptical_arc_to((
-                o_radius,o_radius,
-                0.0, //angle offset
-                if s_divot {0.0} else {1.0}, //large arc
-                1.0, //sweep dir - 0 anti-clockwise
-                i_xy.0,i_xy.1,
-            ));
-        let o_data = data.1
-            .elliptical_arc_to((
-                i_radius,i_radius,
-                0.0, //angle offset
-                if s_divot {0.0} else {1.0}, //large arc
-                1.0, //sweep dir - 0 anti-clockwise
-                o_xy.0,o_xy.1,
-            ));
-        (None,(i_data,o_data), (i_end_angle,o_end_angle))
-    }
-    fn draw_word_arc(&self, data:(Data,Data), start_angle:(f64,f64),end_angle:(f64,f64)) -> (Data, Data) {
-        let (i_radius,o_radius) = self.get_radii();
-        let i_end = self.calc_word_arc_svg_point(end_angle.0, true);
-        let o_end = self.calc_word_arc_svg_point(end_angle.1, false);
-        let i_large_arc = end_angle.0 - start_angle.0 > PI;
-        let o_large_arc = end_angle.1 - start_angle.1 > PI;
-        let outer_arc = data.1        
-            .elliptical_arc_to((
-                o_radius,o_radius,
-                0.0, //angle offset
-                if o_large_arc {1.0} else {0.0}, //large arc
-                0.0, //sweep dir - 0 anti-clockwise
-                o_end.0,o_end.1,
-            ));
-        let inner_arc = data.0        
-            .elliptical_arc_to((
-                i_radius,i_radius,
-                0.0, //angle offset
-                if i_large_arc {1.0} else {0.0}, //large arc
-                0.0, //sweep dir - 0 anti-clockwise
-                i_end.0,i_end.1,
-            ));
-        (inner_arc,outer_arc)
-    }
-    fn letter_circle_node(&self, letter:&LetterArc) -> Circle {
-        let ctx = match &letter.ctx {
-            None => &self.default_ctx,
-            Some(con) => &con.clone()
-        };
-        let (x,y) = letter.pord.abs_svg_xy(ctx.origin());
-        Circle::new()
-            .set("fill", ctx.colour().fill())
-            .set("stroke", ctx.colour().stroke())
-            .set("stroke-width", ctx.stroke().strokewidth())
-            .set("cx", x)
-            .set("cy", y)
-            .set("r", letter.radius)
-    }
-    fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data) {
-        let inner_start_xy = self.calc_word_arc_svg_point(angle.0, true);
-        let outer_start_xy = self.calc_word_arc_svg_point(angle.1, false);
-        let o_data = Data::new()
-            .move_to(outer_start_xy);
-        let i_data = Data::new()
-            .move_to(inner_start_xy);
-        (i_data,o_data)
-    }
-    fn calc_letter_thi(&self, letter:&LetterArc) -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
-        let l_stroke = match &letter.ctx {
-            Some(con) => &con.stroke().clone(),
-            None => self.default_ctx.stroke()
-        };
-        let (word_r_i, word_r_o) = self.get_radii();
-        let lett_r_i = letter.radius - l_stroke.i_stroke();
-        let lett_r_o = letter.radius + l_stroke.o_stroke();
-        let dist_sq = self.calc_dist_sq(letter.pord.as_ref());
-        //"outer thi"
-        let thi1_top = -lett_r_i.powi(2) + dist_sq + word_r_o.powi(2);
-        let thi1_bot = dist_sq.sqrt()*2.0*word_r_o;
-        let thi1 = thi_check(thi1_top, thi1_bot);
-        //"inner thi"
-        let thi2_top = -lett_r_o.powi(2) + dist_sq + word_r_i.powi(2);
-        let thi2_bot = 2.0*dist_sq.sqrt()*word_r_i;
-        let thi2 = thi_check(thi2_top, thi2_bot);
-        //inner word boundary thi
-        let thi3_top = -lett_r_i.powi(2) + dist_sq + word_r_i.powi(2);
-        let thi3_bot = 2.0*dist_sq.sqrt()*word_r_i;
-        let thi3 = thi_check(thi3_top, thi3_bot);
-        //outer word boundary thi
-        let thi4_top = -lett_r_o.powi(2) + dist_sq + word_r_o.powi(2);
-        let thi4_bot = 2.0*dist_sq.sqrt()*word_r_o;
-        let thi4 = thi_check(thi4_top, thi4_bot);
-        (thi1,thi2,thi3,thi4)
-    }
-    fn calc_word_arc_svg_point(&self, angle:f64, inner:bool) -> (f64,f64) {
-        let stroke = self.default_ctx.stroke();
-        let (a,b) = angle.sin_cos();
-        let (x,y) = self.abs_svg_xy(self.default_ctx.origin());
-        //negatives cancel
-        if inner {
-            let i_radius = self.radius - stroke.i_stroke();
-            (x + i_radius * a,  y + i_radius * b)
-        } else {
-            let o_radius = self.radius + stroke.o_stroke();
-            (x + o_radius * a,  y + o_radius * b)
-        }
-    }
-    fn calc_letter_ang(&self, pord:&PordOrCord) -> f64 {
-        self.angle_to(pord)
-    }
-    fn calc_dist_sq(&self, pord:&PordOrCord) -> f64 {
-        self.pord.dist_to_sq(pord)
-    }
-    fn get_letter_radii(&self, letter:&LetterArc) -> (f64,f64) {
-        let stroke = match &letter.ctx {
-            None => self.default_ctx.stroke(),
-            Some(con) => con.stroke()
-        };
-        (letter.radius - stroke.i_stroke(), letter.radius + stroke.o_stroke())
-    }
+    
     pub fn get_last_letter_pord(&self) -> Option<Rc<PordOrCord>> {
         let lett = self.arcs.last()?;
         Some(lett.pord())
     }
-    fn get_radii(&self) -> (f64,f64) {
-        let stroke = self.default_ctx.stroke();
-        (self.radius - stroke.i_stroke(),self.radius + stroke.o_stroke())
+}
+
+impl Cartesian for WordCircle {
+    fn rel_xy(&self) -> (f64,f64) {
+        self.pord().rel_xy()
+    }
+    fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64) {
+        self.pord().abs_svg_xy(svg_origin)
     }
 }
 
-impl Cartesian for Word {
+impl Cartesian for WordArc {
     fn rel_xy(&self) -> (f64,f64) {
-        self.pord.rel_xy()
+        self.pord().rel_xy()
     }
-
     fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64) {
-        self.pord.abs_svg_xy(svg_origin)
+        self.pord().abs_svg_xy(svg_origin)
     }
 }
 

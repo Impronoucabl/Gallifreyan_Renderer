@@ -2,13 +2,19 @@
 use std::{f64::consts::PI, rc::Rc};
 
 use crate::pord::{POrd, PordOrCord};
-
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum SweepDirection{Clockwise,AntiClockwise}
 
 pub fn ang_iter(num:usize) -> impl Iterator<Item = f64> {
     let step = 2.0*PI/num as f64;
     let obj = 0..num;
     obj.map(move |i|i as f64 * step)
+}
+
+pub fn ang_iter_from_range(num:usize, min:f64, max:f64) -> impl Iterator<Item = f64> {
+    let step = (max - min)/num as f64;
+    let obj = 0..num;
+    obj.map(move|i|i as f64 * step + min)
 }
 
 pub fn generate_pord_vector(num:usize, pord:Rc<PordOrCord>,radius:f64) -> Vec<POrd> {

@@ -5,7 +5,7 @@ use std::rc::Rc;
 use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
-use Gal::{basic, decorator, word, StemType};
+use Gal::{basic, decorator, word::{self,Word}, StemType};
 use Gal::utils::SweepDirection::AntiClockwise as ACW;
 
 const WIDTH: u64 = 2048;
@@ -41,10 +41,10 @@ pub fn test() -> Result<(), Error> {
     let poi = Rc::new(Pord(POrd::new(400.0,1.5*PI, gal_origin.clone())));
     let word_p = Rc::new(Pord(POrd::new(400.0,PI, gal_origin.clone())));
     
-    let mut test = word::Word::new("test",poi.clone(),200.0,word_ctx.clone()); 
+    let mut test = word::WordCircle::new("test",poi.clone(),200.0,word_ctx.clone()); 
     test.new_letter_from_data(155.0,PI*0.5,60.0,StemType::B,None);
     test.new_letter_from_data(130.0,PI*0.0,LETTER_RADIUS,StemType::J,None);
-    let mut test2 = word::Word::new("test2",word_p.clone(),300.0,word_ctx.clone());
+    let mut test2 = word::WordCircle::new("test2",word_p.clone(),300.0,word_ctx.clone());
     test2.new_letter_from_data(200.0,PI*1.5,80.0,StemType::S,None);
     test2.new_letter_from_data(240.0,0.0,VOWEL_RADIUS,StemType::J,None);
     doc = test.draw(doc);
