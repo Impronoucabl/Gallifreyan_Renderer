@@ -1,4 +1,4 @@
-use std::cell::OnceCell;
+use std::cell::Cell;
 use std::rc::{Rc, Weak};
 use std::f64::consts::PI;
 
@@ -11,8 +11,8 @@ pub enum PordOrCord{
 //Always use svg for POrds
 #[derive(Debug, Clone, Default)]
 pub struct POrd {
-    r: OnceCell<f64>,
-    theta: OnceCell<f64>,
+    r: Cell<f64>,
+    theta: Cell<f64>,
     anchor: Weak<PordOrCord>,
 }
 
@@ -43,8 +43,8 @@ pub trait Cartesian {
 }
 
 pub trait Polar {
-    fn r(&self) -> &f64;
-    fn theta(&self) -> &f64;
+    fn r(&self) -> f64;
+    fn theta(&self) -> f64;
     fn anchor(&self) -> Weak<PordOrCord>;
     fn anchor_abs_svg_xy(&self, svg_origin:(f64,f64)) -> Option<(f64,f64)> {
         let poc = self.anchor().upgrade()?;
@@ -76,7 +76,7 @@ impl Cartesian for PordOrCord {
 impl Cartesian for POrd {
     fn rel_xy(&self) -> (f64,f64) {
         let (a,b) = self.theta().sin_cos();
-        (*self.r() * a, -*self.r() * b)
+        (self.r() * a, -self.r() * b)
     }
     fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64) {
         let (x,y) = match self.anchor_abs_svg_xy(svg_origin) {
@@ -93,19 +93,17 @@ impl Cartesian for POrd {
 
 impl POrd {
     pub fn new(radius:f64,theta:f64, anchor:Rc<PordOrCord>) -> POrd {
-        let r = OnceCell::new();
-        r.set(radius);
-        let angle = OnceCell::new();
-        angle.set(theta);
+        let r = Cell::new(radius);
+        let angle = Cell::new(theta);
         let anchor = Rc::downgrade(&anchor);
         POrd{r, theta:angle, anchor}
     }
     pub fn add_dist(&mut self, added_dist:f64) {
-        let dist = self.r.get_mut().expect("someoneelse using this");
+        let dist = self.r.get_mut();
         *dist += added_dist;
     }
     pub fn set_theta(&mut self, new_theta:f64) {
-        let theta = self.theta.get_mut().expect("SomeoneElse using this");
+        let theta = self.theta.get_mut();
         *theta = new_theta;
     }
 }
@@ -117,8 +115,8 @@ impl From<POrd> for PordOrCord {
 }
 
 impl Polar for POrd {
-    fn r(&self) -> &f64 {self.r.get().expect("This shouldn't fail.")}
-    fn theta(&self) -> &f64 {self.theta.get().expect("Who consumed this?")}
+    fn r(&self) -> f64 {self.r.get()}
+    fn theta(&self) -> f64 {self.theta.get()}
     fn anchor(&self) -> Weak<PordOrCord> {
         self.anchor.clone()
     }
