@@ -13,7 +13,7 @@ pub mod utils;
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum StemType {B,J,S,Z}
 
-pub fn canvas_init(width:u64, height:u64, solid_background:&str) -> (Document, Rc<(f64,f64)>) {
+pub fn canvas_init(width:u64, height:u64, solid_background:&str) -> (Document, Rc<(f32,f32)>) {
     let drawn = Document::new().set("viewBox", (0, 0, width, height));   
     let background = svg::node::element::Rectangle::new()
     .set("x", 0)
@@ -22,7 +22,7 @@ pub fn canvas_init(width:u64, height:u64, solid_background:&str) -> (Document, R
     .set("height", height)
     .set("fill", solid_background)
     .set("stroke", "none");
-    (drawn.add(background), Rc::new(((width/2) as f64,(height/2) as f64)))
+    (drawn.add(background), Rc::new(((width/2) as f32,(height/2) as f32)))
 }
 
 pub fn save(filepath: String, doc:&Document) -> Result<(), Error> {

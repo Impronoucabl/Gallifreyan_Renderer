@@ -6,7 +6,7 @@ use crate::ctx::Context;
 use crate::pord::{Cartesian, PordOrCord};
 use crate::utils::SweepDirection;
 
-pub fn circle(doc:Document, center:&PordOrCord, radius:f64, ctx:&Context) -> Document {
+pub fn circle(doc:Document, center:&PordOrCord, radius:f32, ctx:&Context) -> Document {
     let center = center.abs_svg_xy(ctx.origin());
     let circle = Circle::new()
         .set("fill", ctx.colour().fill())
@@ -18,7 +18,7 @@ pub fn circle(doc:Document, center:&PordOrCord, radius:f64, ctx:&Context) -> Doc
     doc.add(circle)
 }
 
-pub fn arc_big_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:SweepDirection, ctx:&Context) -> Document {
+pub fn arc_big_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f32, sweep_dir:SweepDirection, ctx:&Context) -> Document {
     let start = start.abs_svg_xy(ctx.origin());
     let end = end.abs_svg_xy(ctx.origin());
     let data = Data::new()
@@ -41,7 +41,7 @@ pub fn arc_big_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64
     doc.add(arc)
 }
 
-pub fn arc_small_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:SweepDirection, ctx:&Context) -> Document {
+pub fn arc_small_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f32, sweep_dir:SweepDirection, ctx:&Context) -> Document {
     let start = start.abs_svg_xy(ctx.origin());
     let end = end.abs_svg_xy(ctx.origin());
     let data = Data::new()
@@ -64,7 +64,7 @@ pub fn arc_small_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f
     doc.add(arc)
 }
 
-pub fn arc_path(doc:Document,thickness:f64, start:&PordOrCord, end:&PordOrCord,radius:f64, sweep_dir:SweepDirection, ctx:&Context) -> Document {
+pub fn arc_path(doc:Document,thickness:f32, start:&PordOrCord, end:&PordOrCord,radius:f32, sweep_dir:SweepDirection, ctx:&Context) -> Document {
     let start = start.abs_svg_xy(ctx.origin());
     let end = end.abs_svg_xy(ctx.origin());
     let (o_radius, i_radius) = (radius+thickness,radius-thickness);

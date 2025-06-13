@@ -1,29 +1,29 @@
 use std::cell::Cell;
 use std::rc::{Rc, Weak};
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
 #[derive(Debug, Clone)]
 pub enum PordOrCord{
     Pord(POrd),
-    Cord(f64,f64),
-    Gord(f64,f64)
+    Cord(f32,f32),
+    Gord(f32,f32)
 }
 //Always use svg for POrds
 #[derive(Debug, Clone, Default)]
 pub struct POrd {
-    r: Cell<f64>,
-    theta: Cell<f64>,
+    r: Cell<f32>,
+    theta: Cell<f32>,
     anchor: Weak<PordOrCord>,
 }
 
 pub trait Cartesian {
-    fn rel_xy(&self) -> (f64,f64);
-    fn rel_svg_xy(&self) -> (f64,f64) {
+    fn rel_xy(&self) -> (f32,f32);
+    fn rel_svg_xy(&self) -> (f32,f32) {
         let (x,y) = self.rel_xy();
         (x, -y)
     }
-    fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64);
-    fn angle_to(&self, other:&impl Cartesian) -> f64 {
+    fn abs_svg_xy(&self, svg_origin:(f32,f32)) -> (f32,f32);
+    fn angle_to(&self, other:&impl Cartesian) -> f32 {
         //we don't actually care about the final translation
         let svg_origin = (0.0,0.0); 
         let (x1,y1) = self.abs_svg_xy(svg_origin);
@@ -35,7 +35,7 @@ pub trait Cartesian {
             raw
         }
     }
-    fn dist_to_sq(&self, other:&impl Cartesian) -> f64 {
+    fn dist_to_sq(&self, other:&impl Cartesian) -> f32 {
         let svg_origin = (0.0,0.0);
         let ((lett_x, lett_y), (word_x,word_y)) = (other.abs_svg_xy(svg_origin),self.abs_svg_xy(svg_origin));
         (word_y - lett_y).powi(2) + (word_x - lett_x).powi(2)
@@ -43,10 +43,10 @@ pub trait Cartesian {
 }
 
 pub trait Polar {
-    fn r(&self) -> f64;
-    fn theta(&self) -> f64;
+    fn r(&self) -> f32;
+    fn theta(&self) -> f32;
     fn anchor(&self) -> Weak<PordOrCord>;
-    fn anchor_abs_svg_xy(&self, svg_origin:(f64,f64)) -> Option<(f64,f64)> {
+    fn anchor_abs_svg_xy(&self, svg_origin:(f32,f32)) -> Option<(f32,f32)> {
         let poc = self.anchor().upgrade()?;
         Some(   match poc.as_ref() {
             PordOrCord::Cord(x,y) => {(*x,*y)}
@@ -57,14 +57,14 @@ pub trait Polar {
 }
 
 impl Cartesian for PordOrCord {
-    fn rel_xy(&self) -> (f64,f64) {
+    fn rel_xy(&self) -> (f32,f32) {
         match &self {
             PordOrCord::Pord(pord) => pord.rel_xy(),
             PordOrCord::Cord(x, y) => (*x,-*y),
             PordOrCord::Gord(x, y) => (*x,*y),
         }
     }
-    fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64) {
+    fn abs_svg_xy(&self, svg_origin:(f32,f32)) -> (f32,f32) {
         match &self {
             PordOrCord::Cord(x,y) => (*x,*y),
             PordOrCord::Gord(x,y) => (x + svg_origin.0,-y + svg_origin.1),
@@ -74,11 +74,11 @@ impl Cartesian for PordOrCord {
 }
 
 impl Cartesian for POrd {
-    fn rel_xy(&self) -> (f64,f64) {
+    fn rel_xy(&self) -> (f32,f32) {
         let (a,b) = self.theta().sin_cos();
         (self.r() * a, -self.r() * b)
     }
-    fn abs_svg_xy(&self, svg_origin:(f64,f64)) -> (f64,f64) {
+    fn abs_svg_xy(&self, svg_origin:(f32,f32)) -> (f32,f32) {
         let (x,y) = match self.anchor_abs_svg_xy(svg_origin) {
             Some(anchor_xy) => anchor_xy,
             None => {
@@ -92,17 +92,17 @@ impl Cartesian for POrd {
 }
 
 impl POrd {
-    pub fn new(radius:f64,theta:f64, anchor:Rc<PordOrCord>) -> POrd {
+    pub fn new(radius:f32,theta:f32, anchor:Rc<PordOrCord>) -> POrd {
         let r = Cell::new(radius);
         let angle = Cell::new(theta);
         let anchor = Rc::downgrade(&anchor);
         POrd{r, theta:angle, anchor}
     }
-    pub fn add_dist(&mut self, added_dist:f64) {
+    pub fn add_dist(&mut self, added_dist:f32) {
         let dist = self.r.get_mut();
         *dist += added_dist;
     }
-    pub fn set_theta(&mut self, new_theta:f64) {
+    pub fn set_theta(&mut self, new_theta:f32) {
         let theta = self.theta.get_mut();
         *theta = new_theta;
     }
@@ -115,8 +115,8 @@ impl From<POrd> for PordOrCord {
 }
 
 impl Polar for POrd {
-    fn r(&self) -> f64 {self.r.get()}
-    fn theta(&self) -> f64 {self.theta.get()}
+    fn r(&self) -> f32 {self.r.get()}
+    fn theta(&self) -> f32 {self.theta.get()}
     fn anchor(&self) -> Weak<PordOrCord> {
         self.anchor.clone()
     }
@@ -126,13 +126,13 @@ impl PordOrCord {
     pub fn gal_origin() -> Rc<PordOrCord> {
         Rc::new(PordOrCord::Gord(0.0, 0.0))
     }
-    pub fn get_r_mut(&mut self) -> Option<&mut f64> {
+    pub fn get_r_mut(&mut self) -> Option<&mut f32> {
         match self {
             PordOrCord::Pord(p) => Some(p.r.get_mut()),
             _ => None
         }
     }
-    pub fn get_theta_mut(&mut self) -> Option<&mut f64> {
+    pub fn get_theta_mut(&mut self) -> Option<&mut f32> {
         match self {
             PordOrCord::Pord(p) => Some(p.theta.get_mut()),
             _ => None

@@ -1,23 +1,23 @@
 
-use std::{f64::consts::PI, rc::Rc};
+use std::{f32::consts::PI, rc::Rc};
 
 use crate::pord::{POrd, PordOrCord};
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum SweepDirection{Clockwise,AntiClockwise}
 
-pub fn ang_iter(num:usize) -> impl Iterator<Item = f64> {
-    let step = 2.0*PI/num as f64;
+pub fn ang_iter(num:usize) -> impl Iterator<Item = f32> {
+    let step = 2.0*PI/num as f32;
     let obj = 0..num;
-    obj.map(move |i|i as f64 * step)
+    obj.map(move |i|i as f32 * step)
 }
 
-pub fn ang_iter_from_range(num:usize, min:f64, max:f64) -> impl Iterator<Item = f64> {
-    let step = (max - min)/num as f64;
+pub fn ang_iter_from_range(num:usize, min:f32, max:f32) -> impl Iterator<Item = f32> {
+    let step = (max - min)/num as f32;
     let obj = 0..num;
-    obj.map(move|i|i as f64 * step + min)
+    obj.map(move|i|i as f32 * step + min)
 }
 
-pub fn generate_pord_vector(num:usize, pord:Rc<PordOrCord>,radius:f64) -> Vec<POrd> {
+pub fn generate_pord_vector(num:usize, pord:Rc<PordOrCord>,radius:f32) -> Vec<POrd> {
     let mut result = Vec::with_capacity(num);
     let mut angle_gen = ang_iter(num);
     while let Some(ang) = angle_gen.next() {

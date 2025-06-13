@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 use std::io::Error;
 use std::rc::Rc;
 
@@ -11,9 +11,9 @@ use Gal::{pord_vec2dot,pord_from_vec_pop};
 
 const WIDTH: u64 = 2048;
 const HEIGHT:u64 = 2048;
-const DOT_RADIUS    :f64 = 30.0;
-const VOWEL_RADIUS  :f64 = 40.0;
-const LETTER_RADIUS :f64 = 120.0;
+const DOT_RADIUS    :f32 = 30.0;
+const VOWEL_RADIUS  :f32 = 40.0;
+const LETTER_RADIUS :f32 = 120.0;
 
 pub fn hello_world() -> Result<(), Error> {
     let filename = "hello_world";

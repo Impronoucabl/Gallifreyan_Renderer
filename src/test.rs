@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 use std::io::Error;
 use std::rc::Rc;
 
@@ -12,8 +12,8 @@ const WIDTH: u64 = 2048;
 const HEIGHT:u64 = 2048;
 const fn canvas_colour() -> &'static str {"yellow"}
 
-const VOWEL_RADIUS :f64 = 12.0;
-const LETTER_RADIUS :f64 = 40.0;
+const VOWEL_RADIUS :f32 = 12.0;
+const LETTER_RADIUS :f32 = 40.0;
 
 pub fn test() -> Result<(), Error> {
     let filename = "test2";
