@@ -126,4 +126,16 @@ impl PordOrCord {
     pub fn gal_origin() -> Rc<PordOrCord> {
         Rc::new(PordOrCord::Gord(0.0, 0.0))
     }
+    pub fn get_r_mut(&mut self) -> Option<&mut f64> {
+        match self {
+            PordOrCord::Pord(p) => Some(p.r.get_mut()),
+            _ => None
+        }
+    }
+    pub fn get_theta_mut(&mut self) -> Option<&mut f64> {
+        match self {
+            PordOrCord::Pord(p) => Some(p.theta.get_mut()),
+            _ => None
+        }
+    }
 }

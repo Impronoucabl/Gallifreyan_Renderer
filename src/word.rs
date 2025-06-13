@@ -10,6 +10,8 @@ use crate::pord::{Cartesian, POrd, PordOrCord};
 use crate::utils;
 use crate::StemType;
 
+enum radius_type{Inner,Average,Outer}
+
 #[derive(Debug, Clone)]
 pub struct LetterArc {
     pord: Rc<PordOrCord>,
@@ -36,6 +38,7 @@ pub struct WordArc {
     default_ctx:Context,
     start_angle:f64,
     end_angle:f64,
+    arc_tip_length:f64,
     sorted:bool,
 }
 
@@ -78,10 +81,13 @@ pub trait Word:Cartesian {
     }
     fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data);
     fn draw(self,doc:Document) -> Document;
+    fn word_arc_loop(&self, doc:Document) -> Document {
+        doc
+    }
     fn draw_word_arc(&self, data:(Data,Data), start_angle:(f64,f64),end_angle:(f64,f64)) -> (Data, Data) {
         let (i_radius,o_radius) = self.get_radii();
-        let i_end = self.calc_word_arc_svg_point(end_angle.0, true);
-        let o_end = self.calc_word_arc_svg_point(end_angle.1, false);
+        let i_end = self.calc_word_arc_svg_point(end_angle.0, radius_type::Inner);
+        let o_end = self.calc_word_arc_svg_point(end_angle.1, radius_type::Outer);
         let i_large_arc = end_angle.0 - start_angle.0 > PI;
         let o_large_arc = end_angle.1 - start_angle.1 > PI;
         let outer_arc = data.1        
@@ -117,8 +123,8 @@ pub trait Word:Cartesian {
             i_end_angle += thi2;
             o_end_angle += thi1;
         }
-        let i_xy = self.calc_word_arc_svg_point(i_end_angle,true);
-        let o_xy = self.calc_word_arc_svg_point(o_end_angle,false);
+        let i_xy = self.calc_word_arc_svg_point(i_end_angle,radius_type::Inner);
+        let o_xy = self.calc_word_arc_svg_point(o_end_angle,radius_type::Outer);
         let i_data = data.0
             .elliptical_arc_to((
                 o_radius,o_radius,
@@ -151,18 +157,22 @@ pub trait Word:Cartesian {
             .set("cy", y)
             .set("r", letter.radius)
     }
-    fn calc_word_arc_svg_point(&self, angle:f64, inner:bool) -> (f64,f64) {
+    fn calc_word_arc_svg_point(&self, angle:f64, inner:radius_type) -> (f64,f64) {
         let con = self.ctx();
         let stroke = con.stroke();
         let (a,b) = angle.sin_cos();
         let (x,y) = self.abs_svg_xy(con.origin());
         //negatives cancel out
-        if inner {
-            let i_radius = self.radius() - stroke.i_stroke();
-            (x + i_radius * a,  y + i_radius * b)
-        } else {
-            let o_radius = self.radius() + stroke.o_stroke();
-            (x + o_radius * a,  y + o_radius * b)
+        match inner {
+            radius_type::Inner => {
+                let i_radius = self.radius() - stroke.i_stroke();
+                (x + i_radius * a,  y + i_radius * b)
+            }, 
+            radius_type::Outer => {
+                let o_radius = self.radius() + stroke.o_stroke();
+                (x + o_radius * a,  y + o_radius * b)
+            },
+            _ => (x + self.radius() * a,  y + self.radius() * b)
         }
     }
     fn calc_letter_thi(&self, letter:&LetterArc) -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
@@ -252,8 +262,8 @@ impl Word for WordCircle {
         }
     }
     fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data) {
-        let inner_start_xy = self.calc_word_arc_svg_point(angle.0, true);
-        let outer_start_xy = self.calc_word_arc_svg_point(angle.1, false);
+        let inner_start_xy = self.calc_word_arc_svg_point(angle.0, radius_type::Inner);
+        let outer_start_xy = self.calc_word_arc_svg_point(angle.1, radius_type::Outer);
         let o_data = Data::new()
             .move_to(outer_start_xy);
         let i_data = Data::new()
@@ -280,8 +290,12 @@ impl Word for WordArc {
     }
     fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
         let angle = self.angle_to(pord.as_ref());
-        if angle < self.start_angle() || angle > self.end_angle() {
-            println!("bad angle");
+        if angle < self.start_angle() {
+            println!("bad angle - too low");
+            panic!()            
+        }
+        if angle > self.end_angle() {
+            println!("bad angle - too high");
             panic!()
         }
         let letter = LetterArc::new(pord.clone(),radius,stem_type,ctx);
@@ -289,10 +303,33 @@ impl Word for WordArc {
         Rc::downgrade(&pord)
     }
     fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data) {
-        todo!()
+        let start_xy = self.calc_word_arc_svg_point(self.start_angle()-self.arc_tip_length, radius_type::Average);
+        let inner_start_xy = self.calc_word_arc_svg_point(angle.0, radius_type::Inner);
+        let outer_start_xy = self.calc_word_arc_svg_point(angle.1, radius_type::Outer);
+        let o_data = Data::new()
+            .move_to(start_xy)
+            .elliptical_arc_to((
+                self.radius(),self.radius(),
+                0.0, //angle offset
+                if self.arc_tip_length > PI {1.0} else {0.0}, //large arc
+                0.0, //sweep dir - 0 anti-clockwise
+                outer_start_xy.0,outer_start_xy.1,
+            ));
+        let i_data = Data::new()
+            .move_to(start_xy)
+            .elliptical_arc_to((
+                self.radius(),self.radius(),
+                0.0, //angle offset
+                if self.arc_tip_length > PI {1.0} else {0.0}, //large arc
+                0.0, //sweep dir - 0 anti-clockwise
+                inner_start_xy.0,inner_start_xy.1,
+            ));
+        (i_data,o_data)
     }
-    fn draw(self,doc:Document) -> Document {
-        todo!()
+    fn draw(mut self,doc:Document) -> Document {
+        println!("drawing {}...",self.name);
+        self.sort_letters();
+        self.word_arc_loop(doc)
     }
 }
 
