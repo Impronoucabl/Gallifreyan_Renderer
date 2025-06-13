@@ -25,6 +25,7 @@ pub struct WordCircle {
     arcs: Vec<LetterArc>,
     default_ctx:Context,
     path_circle: bool,
+    sorted: bool,
 }
 
 pub struct WordArc {
@@ -34,7 +35,8 @@ pub struct WordArc {
     arcs: Vec<LetterArc>,
     default_ctx:Context,
     start_angle:f64,
-    end_angle:f64
+    end_angle:f64,
+    sorted:bool,
 }
 
 pub trait Word:Cartesian {
@@ -65,9 +67,14 @@ pub trait Word:Cartesian {
         let result = utils::generate_pord_vector(num_of_attach,letter_pord.clone(),radius);
         (letter_pord,result)
     }
+    fn sorted(&mut self) -> &mut bool;
     fn sort_letters(&mut self) {
+        if *self.sorted() {
+            return
+        } 
         let location= self.pord();
         self.arcs().sort_by_key(|a|location.angle_to(a.pord.as_ref()) as i32);
+        *self.sorted() = true;
     }
     fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data);
     fn draw(self,doc:Document) -> Document;
@@ -214,7 +221,19 @@ impl Word for WordCircle {
     fn radius(&self) -> f64 {
         self.radius
     }
+    fn sorted(&mut self) -> &mut bool {
+        &mut self.sorted
+    }
     fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
+        if let Some(last_pord) = self.get_last_letter_pord() {
+            if self.sorted {
+                let angle = self.angle_to(pord.as_ref());
+                let last_angle = self.angle_to(last_pord.as_ref());
+                if angle < last_angle {
+                    self.sorted = false
+                }
+            }
+        }
         let letter = LetterArc::new(pord.clone(),radius,stem_type,ctx);
         self.arcs().push(letter);
         if stem_type == StemType::S || stem_type == StemType::B {
@@ -256,8 +275,18 @@ impl Word for WordArc {
     fn radius(&self) -> f64 {
         self.radius
     }
+    fn sorted(&mut self) -> &mut bool {
+        &mut self.sorted
+    }
     fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f64,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
-        todo!()
+        let angle = self.angle_to(pord.as_ref());
+        if angle < self.start_angle() || angle > self.end_angle() {
+            println!("bad angle");
+            panic!()
+        }
+        let letter = LetterArc::new(pord.clone(),radius,stem_type,ctx);
+        self.arcs().push(letter);
+        Rc::downgrade(&pord)
     }
     fn start_path_data(&self, angle:(f64,f64)) -> (Data, Data) {
         todo!()
@@ -276,6 +305,7 @@ impl WordCircle {
             arcs: Vec::new(), 
             default_ctx: ctx,
             path_circle:false,
+            sorted:true,
         }
     }
     fn draw_circle_only(self, mut doc: Document, word_x:f64, word_y:f64) ->Document {
@@ -377,11 +407,19 @@ impl WordCircle {
             doc = doc.add(cir);
         }
         doc
-    }
-    
+    } 
     pub fn get_last_letter_pord(&self) -> Option<Rc<PordOrCord>> {
         let lett = self.arcs.last()?;
         Some(lett.pord())
+    }
+}
+
+impl WordArc {
+    fn start_angle(&self) -> f64{
+        self.start_angle
+    }
+    fn end_angle(&self) -> f64 {
+        self.end_angle
     }
 }
 
