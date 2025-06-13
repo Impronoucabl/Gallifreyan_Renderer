@@ -6,7 +6,7 @@ use gallifreyan::decorator::Linebuilder;
 use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord};
-use Gal::{basic, decorator, word, StemType};
+use Gal::{basic, decorator, word::{self, Word}, StemType};
 use Gal::{pord_vec2dot,pord_from_vec_pop};
 
 const WIDTH: u64 = 2048;

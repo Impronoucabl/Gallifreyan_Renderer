@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 use std::rc::{Rc, Weak};
 use std::f64::consts::PI;
 
@@ -10,8 +11,8 @@ pub enum PordOrCord{
 //Always use svg for POrds
 #[derive(Debug, Clone, Default)]
 pub struct POrd {
-    r: Rc<f64>,
-    theta: Rc<f64>,
+    r: OnceCell<f64>,
+    theta: OnceCell<f64>,
     anchor: Weak<PordOrCord>,
 }
 
@@ -42,8 +43,8 @@ pub trait Cartesian {
 }
 
 pub trait Polar {
-    fn r(&self) -> Rc<f64>;
-    fn theta(&self) -> Rc<f64>;
+    fn r(&self) -> &f64;
+    fn theta(&self) -> &f64;
     fn anchor(&self) -> Weak<PordOrCord>;
     fn anchor_abs_svg_xy(&self, svg_origin:(f64,f64)) -> Option<(f64,f64)> {
         let poc = self.anchor().upgrade()?;
@@ -92,17 +93,19 @@ impl Cartesian for POrd {
 
 impl POrd {
     pub fn new(radius:f64,theta:f64, anchor:Rc<PordOrCord>) -> POrd {
-        let r = Rc::new(radius);
-        let angle = Rc::new(theta);
+        let r = OnceCell::new();
+        r.set(radius);
+        let angle = OnceCell::new();
+        angle.set(theta);
         let anchor = Rc::downgrade(&anchor);
         POrd{r, theta:angle, anchor}
     }
     pub fn add_dist(&mut self, added_dist:f64) {
-        let dist = Rc::get_mut(&mut self.r).expect("someoneelse using this");
+        let dist = self.r.get_mut().expect("someoneelse using this");
         *dist += added_dist;
     }
     pub fn set_theta(&mut self, new_theta:f64) {
-        let theta = Rc::get_mut(&mut self.theta).expect("SomeoneElse using this");
+        let theta = self.theta.get_mut().expect("SomeoneElse using this");
         *theta = new_theta;
     }
 }
@@ -114,8 +117,8 @@ impl From<POrd> for PordOrCord {
 }
 
 impl Polar for POrd {
-    fn r(&self) -> Rc<f64> {self.r.clone()}
-    fn theta(&self) -> Rc<f64> {self.theta.clone()}
+    fn r(&self) -> &f64 {self.r.get().expect("This shouldn't fail.")}
+    fn theta(&self) -> &f64 {self.theta.get().expect("Who consumed this?")}
     fn anchor(&self) -> Weak<PordOrCord> {
         self.anchor.clone()
     }
