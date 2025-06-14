@@ -23,6 +23,12 @@ pub trait Cartesian {
         (x, -y)
     }
     fn abs_svg_xy(&self, svg_origin:(f32,f32)) -> (f32,f32);
+    fn svg_xy_to(&self, other:impl Cartesian) -> (f32,f32) {
+        let svg_origin = (0.0,0.0); 
+        let (self_x,self_y) = self.abs_svg_xy(svg_origin);
+        let (other_x,other_y) = other.abs_svg_xy(svg_origin);
+        (other_x - self_x, other_y - self_y)
+    }
     fn angle_to(&self, other:&impl Cartesian) -> f32 {
         //we don't actually care about the final translation
         let svg_origin = (0.0,0.0); 
