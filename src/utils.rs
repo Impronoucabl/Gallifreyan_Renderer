@@ -20,8 +20,7 @@ pub struct SvgPosition(pub f32,pub f32);
 #[derive(Debug, Default, Clone)]
 pub struct PathBuilder{
     positions:Vec<SvgPosition>,
-    parameters:Vec<PathParameter>,
-    reversed:bool
+    parameters:Vec<PathParameter>
 }
 
 pub fn ang_iter(num:usize) -> impl Iterator<Item = f32> {

@@ -7,7 +7,8 @@ use svg::node::element::{Circle, Path};
 
 use crate::ctx::Context;
 use crate::pord::{Cartesian, POrd, PordOrCord};
-use crate::utils::{self, SvgPosition};
+use crate::utils;
+use crate::utils::{LargeArcFlag, PathBuilder, SvgPosition, SweepDirection};
 use crate::StemType;
 
 enum RadiusType{Inner,Average,Outer}
@@ -85,8 +86,8 @@ pub trait Word:Cartesian {
         self.arcs().sort_by_key(|a|location.angle_to(a.pord.as_ref()) as i32);
         *self.sorted() = true;
     }
-    fn start_path_data(&self, angle:(InnerAngle,OuterAngle)) -> (Data, Data);
-    fn end_path_data(&self, doc:Document, data:(Data,Data)) -> Document;
+    fn start_path_data(&self, angle:(InnerAngle,OuterAngle)) -> (PathBuilder, PathBuilder);
+    fn end_path_data(&self, doc:Document, data:(PathBuilder, PathBuilder)) -> Document;
     fn draw(self,doc:Document) -> Document;
     //This assumes the arc is already sorted.
     fn word_arc_loop(&mut self, mut doc:Document) -> Document {
@@ -158,64 +159,54 @@ pub trait Word:Cartesian {
         }
         doc
     }
-    fn draw_word_arc(&self, data:(Data,Data), start_angle:(InnerAngle,OuterAngle), end_angle:(InnerAngle,OuterAngle)) -> (Data, Data) {
+    fn draw_word_arc(&self, mut data:(PathBuilder, PathBuilder), start_angle:(InnerAngle,OuterAngle), end_angle:(InnerAngle,OuterAngle)) -> (PathBuilder, PathBuilder) {
         let (i_radius,o_radius) = self.get_radii();
         let i_end = self.calc_word_arc_svg_point(end_angle.0.0, RadiusType::Inner);
         let o_end = self.calc_word_arc_svg_point(end_angle.1.0, RadiusType::Outer);
         let i_large_arc = end_angle.0.0 - start_angle.0.0 > PI;
         let o_large_arc = end_angle.1.0 - start_angle.1.0 > PI;
-        let outer_arc = data.1        
-            .elliptical_arc_to((
-                o_radius,o_radius,
-                0.0, //angle offset
-                if o_large_arc {1.0} else {0.0}, //large arc
-                0.0, //sweep dir - 0 anti-clockwise
-                o_end.0,o_end.1,
-            ));
-        let inner_arc = data.0        
-            .elliptical_arc_to((
-                i_radius,i_radius,
-                0.0, //angle offset
-                if i_large_arc {1.0} else {0.0}, //large arc
-                0.0, //sweep dir - 0 anti-clockwise
-                i_end.0,i_end.1,
-            ));
-        (inner_arc,outer_arc)
+        data.1.arc_to(
+            o_end,
+            o_radius,
+            LargeArcFlag(o_large_arc),
+            SweepDirection(false) //sweep dir - 0 anti-clockwise
+        );
+        data.0.arc_to(
+            i_end,
+            i_radius,
+            LargeArcFlag(i_large_arc),
+            SweepDirection(false), //sweep dir - 0 anti-clockwise
+        );
+        data
     }
-    fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data), (InnerAngle,OuterAngle)) {
+    fn draw_letter_arc(&self, letter:&LetterArc, mut data:(PathBuilder, PathBuilder)) -> (Option<Circle>,(PathBuilder, PathBuilder), (InnerAngle,OuterAngle)) {
         let mut i_end_angle = self.angle_to(letter.pord.as_ref());
         let s_divot = match letter.stem_type {
             StemType::J | StemType::Z => {
                 return (Some(self.letter_circle_node(letter)),data,(i_end_angle.into(),i_end_angle.into())); 
             }, 
-            StemType::S => true,
-            StemType::B => false
+            StemType::S => false,
+            StemType::B => true
         };
-        let (i_radius,o_radius)= self.get_letter_radii(letter);
+        let (inner_letter_radius,outer_letter_radius)= self.get_letter_radii(letter);
         let mut o_end_angle = i_end_angle;
         if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
             i_end_angle += thi2;
             o_end_angle += thi1;
         }
-        let i_xy = self.calc_word_arc_svg_point(i_end_angle,RadiusType::Inner);
-        let o_xy = self.calc_word_arc_svg_point(o_end_angle,RadiusType::Outer);
-        let i_data = data.0
-            .elliptical_arc_to((
-                o_radius,o_radius,
-                0.0, //angle offset
-                if s_divot {0.0} else {1.0}, //large arc
-                1.0, //sweep dir - 0 anti-clockwise
-                i_xy.0,i_xy.1,
-            ));
-        let o_data = data.1
-            .elliptical_arc_to((
-                i_radius,i_radius,
-                0.0, //angle offset
-                if s_divot {0.0} else {1.0}, //large arc
-                1.0, //sweep dir - 0 anti-clockwise
-                o_xy.0,o_xy.1,
-            ));
-        (None,(i_data,o_data), (i_end_angle.into(),o_end_angle.into()))
+        data.0.arc_to(
+            self.calc_word_arc_svg_point(i_end_angle,RadiusType::Inner),
+            outer_letter_radius,
+            LargeArcFlag(s_divot), //large arc
+            SweepDirection(true), //sweep dir - 0 anti-clockwise
+        );
+        data.1.arc_to(
+            self.calc_word_arc_svg_point(o_end_angle,RadiusType::Outer),
+            inner_letter_radius,
+            LargeArcFlag(s_divot), //large arc
+            SweepDirection(true), //sweep dir - 0 anti-clockwise
+        );
+        (None, data, (i_end_angle.into(),o_end_angle.into()))
     }
     fn letter_circle_node(&self, letter:&LetterArc) -> Circle {
         let ctx = match &letter.ctx {
@@ -365,25 +356,21 @@ impl Word for WordCircle {
             self.word_arc_loop(doc)
         }
     }
-    fn start_path_data(&self, angle:(InnerAngle, OuterAngle)) -> (Data, Data) {
-        //let o_data = Vec::new();
-        //let i_data = Vec::new();
-        let inner_start_xy = self.calc_word_arc_svg_point(angle.0.0, RadiusType::Inner);
-        let outer_start_xy = self.calc_word_arc_svg_point(angle.1.0, RadiusType::Outer);
-        let o_data = Data::new();
-            //.move_to(outer_start_xy);
-        let i_data = Data::new();
-            //.move_to(inner_start_xy);
+    fn start_path_data(&self, angle:(InnerAngle, OuterAngle)) -> (PathBuilder, PathBuilder) {
+        let mut o_data = utils::PathBuilder::new();
+        let mut i_data = utils::PathBuilder::new();
+        i_data.move_to(self.calc_word_arc_svg_point(angle.0.0, RadiusType::Inner));
+        o_data.move_to(self.calc_word_arc_svg_point(angle.1.0, RadiusType::Outer));
         (i_data,o_data)
     }
-    fn end_path_data(&self, doc:Document, data:(Data,Data)) -> Document {
+    fn end_path_data(&self, doc:Document, data:(PathBuilder, PathBuilder)) -> Document {
         let i_word_arc = Path::new()
-            .set("d", data.0.close())
+            .set("d", data.0.build_data().close())
             .set("fill", self.ctx().colour().bg())
             .set("stroke", "none")
             .set("stroke-width", 0.0);
         let o_word_arc = Path::new()
-            .set("d", data.1.close())
+            .set("d", data.1.build_data().close())
             .set("fill", self.ctx().colour().stroke())
             .set("stroke", "none")
             .set("stroke-width", 0.0);
@@ -428,43 +415,39 @@ impl Word for WordArc {
         self.arcs().push(letter);
         Rc::downgrade(&pord)
     }
-    fn start_path_data(&self, angle:(InnerAngle,OuterAngle)) -> (Data, Data) {
-        //let o_data = Vec::new();
-        //let i_data = Vec::new();
+    fn start_path_data(&self, angle:(InnerAngle,OuterAngle)) -> (PathBuilder, PathBuilder) {
+        let mut o_data = PathBuilder::new();
+        let mut i_data = PathBuilder::new();
         let start_xy = self.calc_word_arc_svg_point(self.start_angle()-self.arc_tip_length, RadiusType::Average);
         let inner_start_xy = self.calc_word_arc_svg_point(angle.0.0, RadiusType::Inner);
         let outer_start_xy = self.calc_word_arc_svg_point(angle.1.0, RadiusType::Outer);
-        let o_data = Data::new();
-            // .move_to(start_xy)
-            // .elliptical_arc_to((
-            //     self.radius(),self.radius(),
-            //     0.0, //angle offset
-            //     if self.arc_tip_length > PI {1.0} else {0.0}, //large arc
-            //     0.0, //sweep dir - 0 anti-clockwise
-            //     outer_start_xy.0,outer_start_xy.1,
-            // ));
-        let i_data = Data::new();
-            // .move_to(start_xy)
-            // .elliptical_arc_to((
-            //     self.radius(),self.radius(),
-            //     0.0, //angle offset
-            //     if self.arc_tip_length > PI {1.0} else {0.0}, //large arc
-            //     0.0, //sweep dir - 0 anti-clockwise
-            //     inner_start_xy.0,inner_start_xy.1,
-            // ));
+        o_data.move_to(start_xy);
+        i_data.move_to(start_xy);
+        o_data.arc_to(
+            outer_start_xy, 
+            self.radius(),
+            LargeArcFlag(self.arc_tip_length > PI), 
+            SweepDirection(false)
+        );
+        i_data.arc_to(
+            inner_start_xy, 
+            self.radius(),
+            LargeArcFlag(self.arc_tip_length > PI), 
+            SweepDirection(false)
+        );
         (i_data,o_data)
     }
-    fn end_path_data(&self, doc:Document, data:(Data,Data)) -> Document {
+    fn end_path_data(&self, doc:Document, data:(PathBuilder, PathBuilder)) -> Document {
         let start_xy = self.calc_word_arc_svg_point(self.end_angle()+self.arc_tip_length, RadiusType::Average);
         let (i_data,o_data) = data;
         
         let i_word_arc = Path::new()
-            .set("d", i_data.close())
+            .set("d", i_data.build_data().close())
             .set("fill", self.ctx().colour().bg())
             .set("stroke", "none")
             .set("stroke-width", 0.0);
         let o_word_arc = Path::new()
-            .set("d", o_data.close())
+            .set("d", o_data.build_data().close())
             .set("fill", self.ctx().colour().stroke())
             .set("stroke", "none")
             .set("stroke-width", 0.0);
