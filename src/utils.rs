@@ -1,7 +1,7 @@
 
 use std::{f32::consts::PI, rc::Rc};
 
-use svg::node::element::path::{Command, Data};
+use svg::node::element::path::Data;
 use svg::node::element::path::Command::{Move, EllipticalArc};
 use svg::node::element::path::Position::Absolute as A;
 

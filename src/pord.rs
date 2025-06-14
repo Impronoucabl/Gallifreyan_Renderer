@@ -144,4 +144,12 @@ impl PordOrCord {
             _ => None
         }
     }
+    pub fn get_anchor(&self) -> Option<Weak<PordOrCord>> {
+        match self {
+            PordOrCord::Pord(pord) => {
+                Some(pord.anchor.clone())
+            },
+            _ => None
+        }
+    }
 }

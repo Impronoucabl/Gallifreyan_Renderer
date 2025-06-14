@@ -54,6 +54,8 @@ pub trait Word:Cartesian {
     fn ctx(&self) -> Context;
     fn get_last_letter(&self) -> Option<&LetterArc>;
     fn get_first_letter(&self) -> Option<&LetterArc>;
+    fn default_word_start_angle(&self) -> f32;
+    fn default_word_end_angle(&self) -> f32;
     fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f32,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord>;
     fn new_letter_from_data(&mut self, r:f32,theta:f32,radius:f32,stem_type:StemType,ctx:Option<Context>) -> Rc<PordOrCord> {
         let dist = if stem_type == StemType::S {
@@ -97,12 +99,12 @@ pub trait Word:Cartesian {
         let mut prev_pord = letter.pord();
         let mut circle_letters = Vec::new();
         let (mut i_letter_start_angle, mut o_letter_start_angle) = self.calc_starting_letter_angle();
-        let i_word_start_angle = if i_letter_start_angle.0 < 0.0 {
+        let i_word_start_angle = if i_letter_start_angle.0 < self.default_word_start_angle() {
             i_letter_start_angle
-        } else {0.0.into()};
-        let o_word_start_angle = if o_letter_start_angle.0 < 0.0 {
+        } else {self.default_word_start_angle().into()};
+        let o_word_start_angle = if o_letter_start_angle.0 < self.default_word_start_angle() {
             o_letter_start_angle
-        } else {0.0.into()};
+        } else {self.default_word_start_angle().into()};
         let mut data = self.start_path_data((i_word_start_angle, o_word_start_angle));
         if i_word_start_angle < i_letter_start_angle || o_word_start_angle < o_letter_start_angle {
             data = self.draw_word_arc(data,(i_word_start_angle,o_word_start_angle),(i_letter_start_angle,o_letter_start_angle));
@@ -114,9 +116,17 @@ pub trait Word:Cartesian {
             circle_letters.push(letter_circle);
         }; 
         while let Some(letter) = l_iter.next() {
+            let mut skip = false;
             if Rc::ptr_eq(&prev_pord, &letter.pord()) {
+                skip = true;
+            } else if let Some(anchor) = letter.pord().get_anchor() {
+                if Weak::ptr_eq(&Rc::downgrade(&prev_pord), &anchor) {
+                    skip = true;
+                }
+            }
+            if skip {
                 prev_pord = letter.pord();
-                (cir, data,_) = self.draw_letter_arc( letter, data);
+                (cir, data,_) = self.draw_letter_arc(letter, data);
                 if let Some(letter_circle) =  cir {
                     circle_letters.push(letter_circle);
                 };
@@ -145,11 +155,11 @@ pub trait Word:Cartesian {
             };
         }
         let end_angles = (
-            if i_word_start_angle.0 <= 0.0 {
-                i_word_start_angle.0 + PI*2.0
+            if i_word_start_angle.0 <= self.default_word_start_angle() {
+                i_word_start_angle.0 + self.default_word_end_angle()
             } else {i_word_start_angle.0}.into(),
-            if o_word_start_angle.0 <= 0.0 {
-                o_word_start_angle.0 + PI*2.0
+            if o_word_start_angle.0 <= self.default_word_start_angle() {
+                o_word_start_angle.0 + self.default_word_end_angle()
             } else {o_word_start_angle.0}.into()
         );
         data = self.draw_word_arc(data,end_angle,end_angles);
@@ -376,7 +386,8 @@ impl Word for WordCircle {
             .set("stroke-width", 0.0);
         doc.add(o_word_arc).add(i_word_arc)
     }
-    
+    fn default_word_start_angle(&self) -> f32 {0.0}
+    fn default_word_end_angle(&self) -> f32 {2.0*PI}
 }
 
 impl Word for WordArc {
@@ -404,11 +415,11 @@ impl Word for WordArc {
     fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f32,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
         let angle = self.angle_to(pord.as_ref());
         if angle < self.start_angle() {
-            println!("bad angle - too low");
+            println!("bad angle: {} - too low {}", angle, self.start_angle());
             panic!()            
         }
-        if angle > self.end_angle() {
-            println!("bad angle - too high");
+        if angle > self.end_angle() && angle < self.start_angle() + PI*2.0 {
+            println!("bad angle: {} - too high {}", angle, self.end_angle());
             panic!()
         }
         let letter = LetterArc::new(pord.clone(),radius,stem_type,ctx);
@@ -438,25 +449,39 @@ impl Word for WordArc {
         (i_data,o_data)
     }
     fn end_path_data(&self, doc:Document, data:(PathBuilder, PathBuilder)) -> Document {
-        let start_xy = self.calc_word_arc_svg_point(self.end_angle()+self.arc_tip_length, RadiusType::Average);
-        let (i_data,o_data) = data;
-        
-        let i_word_arc = Path::new()
-            .set("d", i_data.build_data().close())
-            .set("fill", self.ctx().colour().bg())
-            .set("stroke", "none")
-            .set("stroke-width", 0.0);
+        let end_xy = self.calc_word_arc_svg_point(self.end_angle()+self.arc_tip_length, RadiusType::Average);
+        let (mut i_path, mut o_path) = data;
+        i_path.arc_to(
+            end_xy, 
+            self.radius(), 
+            LargeArcFlag(self.arc_tip_length > PI), 
+            SweepDirection(false)
+        );
+        o_path.arc_to(
+            end_xy, 
+            self.radius(), 
+            LargeArcFlag(self.arc_tip_length > PI), 
+            SweepDirection(false)
+        );
+        let mut o_data = o_path.build_data();
+        o_data = i_path.reverse_and_apphend(o_data);
         let o_word_arc = Path::new()
-            .set("d", o_data.build_data().close())
+            .set("d", o_data.close())
             .set("fill", self.ctx().colour().stroke())
             .set("stroke", "none")
             .set("stroke-width", 0.0);
-        doc.add(o_word_arc).add(i_word_arc)
+        doc.add(o_word_arc)
     }
     fn draw(mut self,doc:Document) -> Document {
         println!("drawing {}...",self.name);
         self.sort_letters();
         self.word_arc_loop(doc)
+    }
+    fn default_word_start_angle(&self) -> f32 {
+        self.start_angle()
+    }
+    fn default_word_end_angle(&self) -> f32 {
+        self.end_angle()
     }
 }
 
@@ -489,10 +514,23 @@ impl WordCircle {
 }
 
 impl WordArc {
-    fn start_angle(&self) -> f32{
+    pub fn new(name:&str, pord:Rc<PordOrCord>, radius:f32, start_angle:f32, end_angle:f32, arc_tip_length:f32, ctx:Context) -> WordArc {
+        WordArc { 
+            name: name.to_string(), 
+            pord, 
+            radius, 
+            arcs: Vec::new(), 
+            start_angle,
+            end_angle,
+            arc_tip_length,
+            default_ctx: ctx,
+            sorted:true,
+        }
+    }
+    pub fn start_angle(&self) -> f32{
         self.start_angle
     }
-    fn end_angle(&self) -> f32 {
+    pub fn end_angle(&self) -> f32 {
         self.end_angle
     }
 }

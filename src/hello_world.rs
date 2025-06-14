@@ -3,6 +3,7 @@ use std::io::Error;
 use std::rc::Rc;
 
 use gallifreyan::decorator::Linebuilder;
+use gallifreyan::pord::Polar;
 use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord};
@@ -31,7 +32,15 @@ pub fn hello_world() -> Result<(), Error> {
 
     println!("Starting...");
     let hello_pord = Rc::new(PordOrCord::Pord(POrd::new(450.0, 0.0, gal_origin.clone())));
-    let mut hello = word::WordCircle::new("hello",hello_pord.clone(),400.0,w_ctx.clone());
+    let mut hello = word::WordArc::new(
+        "hello",
+        hello_pord.clone(),
+        400.0,
+        -0.3,
+        PI + 0.6,
+        0.8,
+        w_ctx.clone()
+    );
     let (h_pord,mut h_points) = hello.new_letter_with_attach(315.0, 0.0, LETTER_RADIUS, StemType::B, Some(l_ctx.clone()), 2);
     hello.new_letter_from_pordorcord(h_pord.clone(), VOWEL_RADIUS, StemType::J, Some(v_ctx.clone()), 0);
     let (l_pord,l_points) = hello.new_letter_with_attach(150.0, PI, LETTER_RADIUS, StemType::J, Some(l_ctx.clone()), 3);
