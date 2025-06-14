@@ -10,8 +10,12 @@ use crate::pord::{Cartesian, POrd, PordOrCord};
 use crate::utils;
 use crate::StemType;
 
-enum radius_type{Inner,Average,Outer}
-
+enum RadiusType{Inner,Average,Outer}
+#[derive(Debug,Clone, Copy,PartialEq, PartialOrd)]
+pub struct InnerAngle(f32);
+#[derive(Debug,Clone, Copy,PartialEq, PartialOrd)]
+pub struct OuterAngle(f32);
+const ZERO_ANGLE : (InnerAngle, OuterAngle) = (InnerAngle(0.0),OuterAngle(0.0));
 #[derive(Debug, Clone)]
 pub struct LetterArc {
     pord: Rc<PordOrCord>,
@@ -47,6 +51,8 @@ pub trait Word:Cartesian {
     fn radius(&self) -> f32;
     fn arcs(&mut self) -> &mut Vec<LetterArc>;
     fn ctx(&self) -> Context;
+    fn get_last_letter(&self) -> Option<&LetterArc>;
+    fn get_first_letter(&self) -> Option<&LetterArc>;
     fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f32,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord>;
     fn new_letter_from_data(&mut self, r:f32,theta:f32,radius:f32,stem_type:StemType,ctx:Option<Context>) -> Rc<PordOrCord> {
         let dist = if stem_type == StemType::S {
@@ -79,44 +85,29 @@ pub trait Word:Cartesian {
         self.arcs().sort_by_key(|a|location.angle_to(a.pord.as_ref()) as i32);
         *self.sorted() = true;
     }
-    fn start_path_data(&self, angle:(f32,f32)) -> (Data, Data);
+    fn start_path_data(&self, angle:(InnerAngle,OuterAngle)) -> (Data, Data);
     fn end_path_data(&self, doc:Document, data:(Data,Data)) -> Document;
     fn draw(self,doc:Document) -> Document;
+    //This assumes the arc is already sorted.
     fn word_arc_loop(&mut self, mut doc:Document) -> Document {
         let arc_vec = self.arcs().clone();
         let mut l_iter = arc_vec.iter();
         let letter = l_iter.next().expect("no letters in word arc");
         let mut prev_pord = letter.pord();
         let mut circle_letters = Vec::new();
-        let mut i_letter_start_angle = self.angle_to(letter.pord.as_ref());
-        let mut o_letter_start_angle = i_letter_start_angle;
-        let (i_word_start_angle, o_word_start_angle) = match letter.stem_type {
-            StemType::J | StemType::Z => (0.0, 0.0), 
-            StemType::B | StemType::S => {
-                if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
-                    i_letter_start_angle -= thi2;
-                    o_letter_start_angle -= thi1;
-                    let val1 = if i_letter_start_angle < 0.0 {i_letter_start_angle} else {0.0};
-                    let val2 = if o_letter_start_angle < 0.0 {o_letter_start_angle} else {0.0};
-                    (val1,val2)
-                } else {
-                    (0.0,0.0)
-                }
-            },
-        };
-        let (mut i_word_end_angle, mut o_word_end_angle) = (i_word_start_angle,o_word_start_angle);
+        let (mut i_letter_start_angle, mut o_letter_start_angle) = self.calc_starting_letter_angle();
+        let i_word_start_angle = if i_letter_start_angle.0 < 0.0 {
+            i_letter_start_angle
+        } else {0.0.into()};
+        let o_word_start_angle = if o_letter_start_angle.0 < 0.0 {
+            o_letter_start_angle
+        } else {0.0.into()};
         let mut data = self.start_path_data((i_word_start_angle, o_word_start_angle));
         if i_word_start_angle < i_letter_start_angle || o_word_start_angle < o_letter_start_angle {
             data = self.draw_word_arc(data,(i_word_start_angle,o_word_start_angle),(i_letter_start_angle,o_letter_start_angle));
         }
-        if i_word_end_angle <= 0.0 {
-            i_word_end_angle += PI*2.0;
-        }
-        if o_word_end_angle <= 0.0 {
-            o_word_end_angle += PI*2.0;
-        }
         let mut cir: Option<Circle>;
-        let mut end_angle: (f32, f32);
+        let mut end_angle: (InnerAngle,OuterAngle);
         (cir, data, end_angle) = self.draw_letter_arc(letter, data);
         if let Some(letter_circle) = cir {
             circle_letters.push(letter_circle);
@@ -131,8 +122,8 @@ pub trait Word:Cartesian {
                 continue;
             }
             prev_pord = letter.pord();
-            i_letter_start_angle = self.angle_to(letter.pord.as_ref());
-            o_letter_start_angle = i_letter_start_angle;
+            i_letter_start_angle.0 = self.angle_to(letter.pord.as_ref());
+            o_letter_start_angle.0 = i_letter_start_angle.0;
             let (i_thi, o_thi) = match letter.stem_type {
                 StemType::J | StemType::Z => (0.0, 0.0), 
                 StemType::B | StemType::S => {
@@ -141,8 +132,8 @@ pub trait Word:Cartesian {
                     } else {(0.0,0.0)}
                 }
             };
-            i_letter_start_angle -= i_thi;
-            o_letter_start_angle -= o_thi;
+            i_letter_start_angle.0 -= i_thi;
+            o_letter_start_angle.0 -= o_thi;
             if i_letter_start_angle > end_angle.0 {
                 //this will break if we start doing overlapping s_divots
                 data = self.draw_word_arc(data,end_angle,(i_letter_start_angle,o_letter_start_angle));
@@ -152,19 +143,27 @@ pub trait Word:Cartesian {
                 circle_letters.push(letter_circle);
             };
         }
-        data = self.draw_word_arc(data,end_angle,(i_word_end_angle,o_word_end_angle));
+        let end_angles = (
+            if i_word_start_angle.0 <= 0.0 {
+                i_word_start_angle.0 + PI*2.0
+            } else {i_word_start_angle.0}.into(),
+            if o_word_start_angle.0 <= 0.0 {
+                o_word_start_angle.0 + PI*2.0
+            } else {o_word_start_angle.0}.into()
+        );
+        data = self.draw_word_arc(data,end_angle,end_angles);
         doc = self.end_path_data(doc, data);
         for cir in circle_letters {
             doc = doc.add(cir);
         }
         doc
     }
-    fn draw_word_arc(&self, data:(Data,Data), start_angle:(f32,f32),end_angle:(f32,f32)) -> (Data, Data) {
+    fn draw_word_arc(&self, data:(Data,Data), start_angle:(InnerAngle,OuterAngle), end_angle:(InnerAngle,OuterAngle)) -> (Data, Data) {
         let (i_radius,o_radius) = self.get_radii();
-        let i_end = self.calc_word_arc_svg_point(end_angle.0, radius_type::Inner);
-        let o_end = self.calc_word_arc_svg_point(end_angle.1, radius_type::Outer);
-        let i_large_arc = end_angle.0 - start_angle.0 > PI;
-        let o_large_arc = end_angle.1 - start_angle.1 > PI;
+        let i_end = self.calc_word_arc_svg_point(end_angle.0.0, RadiusType::Inner);
+        let o_end = self.calc_word_arc_svg_point(end_angle.1.0, RadiusType::Outer);
+        let i_large_arc = end_angle.0.0 - start_angle.0.0 > PI;
+        let o_large_arc = end_angle.1.0 - start_angle.1.0 > PI;
         let outer_arc = data.1        
             .elliptical_arc_to((
                 o_radius,o_radius,
@@ -183,11 +182,11 @@ pub trait Word:Cartesian {
             ));
         (inner_arc,outer_arc)
     }
-    fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data), (f32,f32)) {
+    fn draw_letter_arc(&self, letter:&LetterArc, data:(Data,Data)) -> (Option<Circle>,(Data,Data), (InnerAngle,OuterAngle)) {
         let mut i_end_angle = self.angle_to(letter.pord.as_ref());
         let s_divot = match letter.stem_type {
             StemType::J | StemType::Z => {
-                return (Some(self.letter_circle_node(letter)),data,(i_end_angle,i_end_angle)); 
+                return (Some(self.letter_circle_node(letter)),data,(i_end_angle.into(),i_end_angle.into())); 
             }, 
             StemType::S => true,
             StemType::B => false
@@ -198,8 +197,8 @@ pub trait Word:Cartesian {
             i_end_angle += thi2;
             o_end_angle += thi1;
         }
-        let i_xy = self.calc_word_arc_svg_point(i_end_angle,radius_type::Inner);
-        let o_xy = self.calc_word_arc_svg_point(o_end_angle,radius_type::Outer);
+        let i_xy = self.calc_word_arc_svg_point(i_end_angle,RadiusType::Inner);
+        let o_xy = self.calc_word_arc_svg_point(o_end_angle,RadiusType::Outer);
         let i_data = data.0
             .elliptical_arc_to((
                 o_radius,o_radius,
@@ -216,7 +215,7 @@ pub trait Word:Cartesian {
                 1.0, //sweep dir - 0 anti-clockwise
                 o_xy.0,o_xy.1,
             ));
-        (None,(i_data,o_data), (i_end_angle,o_end_angle))
+        (None,(i_data,o_data), (i_end_angle.into(),o_end_angle.into()))
     }
     fn letter_circle_node(&self, letter:&LetterArc) -> Circle {
         let ctx = match &letter.ctx {
@@ -232,18 +231,42 @@ pub trait Word:Cartesian {
             .set("cy", y)
             .set("r", letter.radius)
     }
-    fn calc_word_arc_svg_point(&self, angle:f32, inner:radius_type) -> (f32,f32) {
+    fn calc_starting_letter_angle(&self) -> (InnerAngle,OuterAngle) {
+        let letter = self.get_first_letter().expect("no letters in word arc");
+        let mut i_letter_start_angle = self.angle_to(letter.pord.as_ref());
+        let mut o_letter_start_angle = i_letter_start_angle;
+        match letter.stem_type { 
+            StemType::B | StemType::S => {
+                match self.calc_letter_thi(letter) {
+                    (Some(thi1),Some(thi2),_,_) => {
+                        i_letter_start_angle -= thi2;
+                        o_letter_start_angle -= thi1;
+                    }
+                    (Some(thi1),_,_,_) => {
+                        o_letter_start_angle -= thi1;
+                    }
+                    (_,Some(thi2),_,_) => {
+                        i_letter_start_angle -= thi2;
+                    }
+                    _ => (),
+                }
+            },
+            _ => (),
+        }
+        (InnerAngle(i_letter_start_angle), OuterAngle(o_letter_start_angle))
+    }
+    fn calc_word_arc_svg_point(&self, angle:f32, inner:RadiusType) -> (f32,f32) {
         let con = self.ctx();
         let stroke = con.stroke();
         let (a,b) = angle.sin_cos();
         let (x,y) = self.abs_svg_xy(con.origin());
         //negatives cancel out
         match inner {
-            radius_type::Inner => {
+            RadiusType::Inner => {
                 let i_radius = self.radius() - stroke.i_stroke();
                 (x + i_radius * a,  y + i_radius * b)
             }, 
-            radius_type::Outer => {
+            RadiusType::Outer => {
                 let o_radius = self.radius() + stroke.o_stroke();
                 (x + o_radius * a,  y + o_radius * b)
             },
@@ -306,14 +329,20 @@ impl Word for WordCircle {
     fn radius(&self) -> f32 {
         self.radius
     }
+    fn get_last_letter(&self) -> Option<&LetterArc> {
+        Some(self.arcs.last()?)
+    }
+    fn get_first_letter(&self) -> Option<&LetterArc> {
+        Some(self.arcs.first()?)
+    }
     fn sorted(&mut self) -> &mut bool {
         &mut self.sorted
     }
     fn new_letter(&mut self, pord:Rc<PordOrCord>,radius:f32,stem_type:StemType,ctx:Option<Context>) -> Weak<PordOrCord> {
-        if let Some(last_pord) = self.get_last_letter_pord() {
+        if let Some(last_lett) = self.get_last_letter() {
             if self.sorted {
                 let angle = self.angle_to(pord.as_ref());
-                let last_angle = self.angle_to(last_pord.as_ref());
+                let last_angle = self.angle_to(last_lett.pord().as_ref());
                 if angle < last_angle {
                     self.sorted = false
                 }
@@ -336,11 +365,11 @@ impl Word for WordCircle {
             self.word_arc_loop(doc)
         }
     }
-    fn start_path_data(&self, angle:(f32,f32)) -> (Data, Data) {
+    fn start_path_data(&self, angle:(InnerAngle, OuterAngle)) -> (Data, Data) {
         //let o_data = Vec::new();
         //let i_data = Vec::new();
-        let inner_start_xy = self.calc_word_arc_svg_point(angle.0, radius_type::Inner);
-        let outer_start_xy = self.calc_word_arc_svg_point(angle.1, radius_type::Outer);
+        let inner_start_xy = self.calc_word_arc_svg_point(angle.0.0, RadiusType::Inner);
+        let outer_start_xy = self.calc_word_arc_svg_point(angle.1.0, RadiusType::Outer);
         let o_data = Data::new()
             .move_to(outer_start_xy);
         let i_data = Data::new()
@@ -376,6 +405,12 @@ impl Word for WordArc {
     fn radius(&self) -> f32 {
         self.radius
     }
+    fn get_last_letter(&self) -> Option<&LetterArc> {
+        Some(self.arcs.last()?)
+    }
+    fn get_first_letter(&self) -> Option<&LetterArc> {
+        Some(self.arcs.first()?)
+    }
     fn sorted(&mut self) -> &mut bool {
         &mut self.sorted
     }
@@ -393,12 +428,12 @@ impl Word for WordArc {
         self.arcs().push(letter);
         Rc::downgrade(&pord)
     }
-    fn start_path_data(&self, angle:(f32,f32)) -> (Data, Data) {
+    fn start_path_data(&self, angle:(InnerAngle,OuterAngle)) -> (Data, Data) {
         //let o_data = Vec::new();
         //let i_data = Vec::new();
-        let start_xy = self.calc_word_arc_svg_point(self.start_angle()-self.arc_tip_length, radius_type::Average);
-        let inner_start_xy = self.calc_word_arc_svg_point(angle.0, radius_type::Inner);
-        let outer_start_xy = self.calc_word_arc_svg_point(angle.1, radius_type::Outer);
+        let start_xy = self.calc_word_arc_svg_point(self.start_angle()-self.arc_tip_length, RadiusType::Average);
+        let inner_start_xy = self.calc_word_arc_svg_point(angle.0.0, RadiusType::Inner);
+        let outer_start_xy = self.calc_word_arc_svg_point(angle.1.0, RadiusType::Outer);
         let o_data = Data::new()
             .move_to(start_xy)
             .elliptical_arc_to((
@@ -420,8 +455,9 @@ impl Word for WordArc {
         (i_data,o_data)
     }
     fn end_path_data(&self, doc:Document, data:(Data,Data)) -> Document {
-        let start_xy = self.calc_word_arc_svg_point(self.start_angle()-self.arc_tip_length, radius_type::Average);
-        let (i_data,o_data) = data;;
+        let start_xy = self.calc_word_arc_svg_point(self.end_angle()+self.arc_tip_length, RadiusType::Average);
+        let (i_data,o_data) = data;
+        
         let i_word_arc = Path::new()
             .set("d", i_data.close())
             .set("fill", self.ctx().colour().bg())
@@ -466,10 +502,6 @@ impl WordCircle {
             doc = doc.add(self.letter_circle_node(letter));
         }
         doc
-    }
-    pub fn get_last_letter_pord(&self) -> Option<Rc<PordOrCord>> {
-        let lett = self.arcs.last()?;
-        Some(lett.pord())
     }
 }
 
@@ -518,4 +550,15 @@ fn thi_check(top:f32,bot:f32) -> Option<f32> {
     if top.abs() <= bot {
         Some((top/bot).acos())
     } else {None}
+}
+
+impl From<f32> for InnerAngle {
+    fn from(value: f32) -> Self {
+        InnerAngle(value)
+    }
+}
+impl From<f32> for OuterAngle {
+    fn from(value: f32) -> Self {
+        OuterAngle(value)
+    }
 }
