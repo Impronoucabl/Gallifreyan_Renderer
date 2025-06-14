@@ -1,6 +1,10 @@
 
 use std::{f32::consts::PI, rc::Rc};
 
+use svg::node::element::path::{Command, Data};
+use svg::node::element::path::Command::{Move, EllipticalArc};
+use svg::node::element::path::Position::Absolute as A;
+
 use crate::pord::{POrd, PordOrCord};
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct SweepDirection(pub bool);
@@ -13,10 +17,11 @@ pub enum PathParameter{
 }
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct SvgPosition(pub f32,pub f32);
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct PathBuilder{
     positions:Vec<SvgPosition>,
-    parameters:Vec<PathParameter>
+    parameters:Vec<PathParameter>,
+    reversed:bool
 }
 
 pub fn ang_iter(num:usize) -> impl Iterator<Item = f32> {
@@ -38,6 +43,65 @@ pub fn generate_pord_vector(num:usize, pord:Rc<PordOrCord>,radius:f32) -> Vec<PO
         result.push(POrd::new(radius, ang, pord.clone()))
     }
     result
+}
+
+impl PathBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn move_to(&mut self, to:SvgPosition) {
+        self.parameters.push(PathParameter::Move);
+        self.positions.push(to)
+    }
+    pub fn arc_to(&mut self, to:SvgPosition, radius:f32,arc:LargeArcFlag,sweep:SweepDirection) {
+        self.positions.push(to);
+        self.parameters.push(
+            PathParameter::Arc(radius, arc, sweep)
+        );
+    }
+    pub fn reverse_and_apphend(self, mut data:Data) -> Data {
+        let mut pos_iter = self.positions.into_iter().rev();
+        let mut param_iter = self.parameters.into_iter().rev();
+        let pos = pos_iter.next().expect("Empty vec?");
+        data = data.add(Move(A, (pos.0,pos.1).into()));
+        while let (Some(pos),Some(param)) = (pos_iter.next(), param_iter.next()) {
+            data = match param {
+                PathParameter::Move => {
+                    data.add(Move(A,(pos.0,pos.1).into()))
+                }
+                PathParameter::Arc(radius,LargeArcFlag(arc),SweepDirection(sweep)) => {
+                    data.add(EllipticalArc(A, (
+                        radius,radius,
+                        0.0,
+                        if arc {1.0} else {0.0},
+                        if sweep {0.0} else {1.0}, //swapped since reversed
+                        pos.0,pos.1
+                    ).into()))
+                }
+            }
+        }
+        data
+    }
+    pub fn build_data(self) -> Data {
+        let mut data = Data::new();
+        for (pos, param) in self.positions.into_iter().zip(self.parameters) {
+            data = match param {
+                PathParameter::Move => {
+                    data.add(Move(A,(pos.0,pos.1).into()))
+                }
+                PathParameter::Arc(radius,LargeArcFlag(arc),SweepDirection(sweep)) => {
+                    data.add(EllipticalArc(A, (
+                        radius,radius,
+                        0.0,
+                        if arc {1.0} else {0.0},
+                        if sweep {1.0} else {0.0},
+                        pos.0,pos.1
+                    ).into()))
+                }
+            }
+        }
+        data
+    }
 }
 
 #[macro_export] 
