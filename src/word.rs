@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 use std::rc::{Rc, Weak};
 
-use svg::node::element::path::Data;
 use svg::Document;
 use svg::node::element::{Circle, Path};
 
@@ -149,12 +148,12 @@ pub trait Word:Cartesian {
                 //this will break if we start doing overlapping s_divots
                 data = self.draw_word_arc(data,end_angle,(i_letter_start_angle,o_letter_start_angle));
             }
-            (cir, data,end_angle) = self.draw_letter_arc( letter, data);
+            (cir, data,end_angle) = self.draw_letter_arc(letter, data);
             if let Some(letter_circle) =  cir {
                 circle_letters.push(letter_circle);
             };
         }
-        let end_angles = (
+        let ending_angle = (
             if i_word_start_angle.0 <= self.default_word_start_angle() {
                 i_word_start_angle.0 + self.default_word_end_angle()
             } else {i_word_start_angle.0}.into(),
@@ -162,7 +161,7 @@ pub trait Word:Cartesian {
                 o_word_start_angle.0 + self.default_word_end_angle()
             } else {o_word_start_angle.0}.into()
         );
-        data = self.draw_word_arc(data,end_angle,end_angles);
+        data = self.draw_word_arc(data,end_angle,ending_angle);
         doc = self.end_path_data(doc, data);
         for cir in circle_letters {
             doc = doc.add(cir);
@@ -173,18 +172,16 @@ pub trait Word:Cartesian {
         let (i_radius,o_radius) = self.get_radii();
         let i_end = self.calc_word_arc_svg_point(end_angle.0.0, RadiusType::Inner);
         let o_end = self.calc_word_arc_svg_point(end_angle.1.0, RadiusType::Outer);
-        let i_large_arc = end_angle.0.0 - start_angle.0.0 > PI;
-        let o_large_arc = end_angle.1.0 - start_angle.1.0 > PI;
         data.1.arc_to(
             o_end,
             o_radius,
-            LargeArcFlag(o_large_arc),
+            LargeArcFlag(end_angle.1.0 - start_angle.1.0 > PI),
             SweepDirection(false) //sweep dir - 0 anti-clockwise
         );
         data.0.arc_to(
             i_end,
             i_radius,
-            LargeArcFlag(i_large_arc),
+            LargeArcFlag(end_angle.0.0 - start_angle.0.0 > PI),
             SweepDirection(false), //sweep dir - 0 anti-clockwise
         );
         data

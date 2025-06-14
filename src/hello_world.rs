@@ -54,7 +54,7 @@ pub fn hello_world() -> Result<(), Error> {
     let mut new_o = w_points.pop().unwrap();
     new_o.set_theta(PI);
     world.new_letter_from_pord(new_o.clone(), VOWEL_RADIUS, StemType::J, Some(v_ctx.clone()),0);
-    //We're not going to need anu of these pords
+    //We're not going to need any of these pords
     let (_r_pord,r_points) = world.new_letter_with_attach(400.0, PI/2.0, LETTER_RADIUS, StemType::S, None, 3);
     let (_new_l_pord,new_l_points) = world.new_letter_with_attach(220.0, PI, LETTER_RADIUS, StemType::J, Some(l_ctx.clone()), 3);
     let (_d_pord,d_points) = world.new_letter_with_attach(315.0, PI*1.5, LETTER_RADIUS, StemType::B, Some(l_ctx.clone()), 3);
@@ -77,8 +77,8 @@ pub fn hello_world() -> Result<(), Error> {
     let mut first = Linebuilder::new(&line_ctx);
     pord_from_vec_pop!(h_1,h_points,0.0,Some(PI*2.0/3.0));
     pord_from_vec_pop!(h_2,h_points,0.0,Some(PI*4.0/3.0));
-    _ = first.add_pord(h_2);
     _ = first.add_pord(h_1);
+    _ = first.add_pord(h_2);
     _ = first.add_pord(gal_origin.clone());
     let line1: decorator::CirculcarLine = first.try_into().expect("Let's go!");
     doc = line1.draw_big(doc);
@@ -86,8 +86,8 @@ pub fn hello_world() -> Result<(), Error> {
     let mut second = Linebuilder::new(&line_ctx);
     pord_from_vec_pop!(w_1,w_points,0.0,Some(PI*2.0/3.0));
     pord_from_vec_pop!(w_2,w_points,0.0,Some(PI*4.0/3.0));
-    _ = second.add_pord(w_1);
     _ = second.add_pord(w_2);
+    _ = second.add_pord(w_1);
     _ = second.add_pord(world_pord.clone());
     let line2:decorator::CirculcarLine = second.try_into().expect("Noice.");
     doc = line2.draw_small(doc);
