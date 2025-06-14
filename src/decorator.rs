@@ -94,14 +94,14 @@ impl CirculcarLine {
         let dist1 = self.pord1.dist_to_sq(self.pord3.as_ref());
         let dist2 = self.pord2.dist_to_sq(self.pord3.as_ref());
         let radius = ((dist1 + dist2)/2.0).sqrt();
-        basic::arc_small_circle(doc, self.pord1.as_ref(), self.pord2.as_ref(), radius, utils::SweepDirection::AntiClockwise, &self.ctx)
+        basic::arc_small_circle(doc, self.pord1.as_ref(), self.pord2.as_ref(), radius, utils::SweepDirection(false), &self.ctx)
     }
     pub fn draw_big(self, doc:Document) -> Document {
         //sweep_dir is hardcoded
         let dist1 = self.pord1.dist_to_sq(self.pord3.as_ref());
         let dist2 = self.pord2.dist_to_sq(self.pord3.as_ref());
         let radius = ((dist1 + dist2)/2.0).sqrt();
-        basic::arc_big_circle(doc, self.pord1.as_ref(), self.pord2.as_ref(), radius, utils::SweepDirection::AntiClockwise, &self.ctx)
+        basic::arc_big_circle(doc, self.pord1.as_ref(), self.pord2.as_ref(), radius, utils::SweepDirection(false), &self.ctx)
     }
 }
 

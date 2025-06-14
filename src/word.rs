@@ -7,7 +7,7 @@ use svg::node::element::{Circle, Path};
 
 use crate::ctx::Context;
 use crate::pord::{Cartesian, POrd, PordOrCord};
-use crate::utils;
+use crate::utils::{self, SvgPosition};
 use crate::StemType;
 
 enum RadiusType{Inner,Average,Outer}
@@ -16,7 +16,6 @@ pub struct InnerAngle(f32);
 #[derive(Debug,Clone, Copy,PartialEq, PartialOrd)]
 pub struct OuterAngle(f32);
 const ZERO_ANGLE : (InnerAngle, OuterAngle) = (InnerAngle(0.0),OuterAngle(0.0));
-struct SvgPosition(f32,f32);
 #[derive(Debug, Clone)]
 pub struct LetterArc {
     pord: Rc<PordOrCord>,

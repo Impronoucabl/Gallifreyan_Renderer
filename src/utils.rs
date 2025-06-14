@@ -3,7 +3,21 @@ use std::{f32::consts::PI, rc::Rc};
 
 use crate::pord::{POrd, PordOrCord};
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum SweepDirection{Clockwise,AntiClockwise}
+pub struct SweepDirection(pub bool);
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct LargeArcFlag(pub bool);
+#[derive(Debug, Clone, Copy)]
+pub enum PathParameter{
+    Move,
+    Arc(f32,LargeArcFlag,SweepDirection)
+}
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct SvgPosition(pub f32,pub f32);
+#[derive(Debug, Clone)]
+pub struct PathBuilder{
+    positions:Vec<SvgPosition>,
+    parameters:Vec<PathParameter>
+}
 
 pub fn ang_iter(num:usize) -> impl Iterator<Item = f32> {
     let step = 2.0*PI/num as f32;

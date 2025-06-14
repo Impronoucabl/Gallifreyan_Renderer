@@ -27,9 +27,9 @@ pub fn arc_big_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f32
             radius,radius,
             0.0, //angle offset
             1.0, //large arc
-            match sweep_dir {
-                SweepDirection::Clockwise => 0.0,
-                SweepDirection::AntiClockwise => 1.0
+            match sweep_dir.0 {
+                false => 0.0,
+                true => 1.0
             },
             end.0,end.1,
         ));
@@ -50,9 +50,9 @@ pub fn arc_small_circle(doc:Document,start:&PordOrCord, end:&PordOrCord,radius:f
             radius,radius,
             0.0, //angle offset
             0.0, //large arc
-            match sweep_dir {
-                SweepDirection::Clockwise => 0.0,
-                SweepDirection::AntiClockwise => 1.0
+            match sweep_dir.0 {
+                false => 0.0,
+                true => 1.0
             },
             end.0,end.1,
         ));
@@ -74,18 +74,18 @@ pub fn arc_path(doc:Document,thickness:f32, start:&PordOrCord, end:&PordOrCord,r
             o_radius,o_radius,
             0.0, //angle offset
             0.0, //large arc
-            match sweep_dir {
-                SweepDirection::Clockwise => 0.0,
-                SweepDirection::AntiClockwise => 1.0
+            match sweep_dir.0 {
+                false => 0.0,
+                true => 1.0
             },
             end.0,end.1,
         )).elliptical_arc_to((
             i_radius,i_radius,
             0.0, //angle offset
             0.0, //large arc
-            match sweep_dir { //swap direction
-                SweepDirection::Clockwise => 1.0,
-                SweepDirection::AntiClockwise => 0.0
+            match sweep_dir.0 { //swap direction
+                false => 1.0,
+                true => 0.0
             },
             start.0,start.1,
         )).close();
