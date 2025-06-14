@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 use std::rc::{Rc, Weak};
 
-use svg::node::element::path::{Command, Data};
+use svg::node::element::path::Data;
 use svg::Document;
 use svg::node::element::{Circle, Path};
 
@@ -16,6 +16,7 @@ pub struct InnerAngle(f32);
 #[derive(Debug,Clone, Copy,PartialEq, PartialOrd)]
 pub struct OuterAngle(f32);
 const ZERO_ANGLE : (InnerAngle, OuterAngle) = (InnerAngle(0.0),OuterAngle(0.0));
+struct SvgPosition(f32,f32);
 #[derive(Debug, Clone)]
 pub struct LetterArc {
     pord: Rc<PordOrCord>,
@@ -255,7 +256,7 @@ pub trait Word:Cartesian {
         }
         (InnerAngle(i_letter_start_angle), OuterAngle(o_letter_start_angle))
     }
-    fn calc_word_arc_svg_point(&self, angle:f32, inner:RadiusType) -> (f32,f32) {
+    fn calc_word_arc_svg_point(&self, angle:f32, inner:RadiusType) -> SvgPosition {
         let con = self.ctx();
         let stroke = con.stroke();
         let (a,b) = angle.sin_cos();
@@ -264,13 +265,13 @@ pub trait Word:Cartesian {
         match inner {
             RadiusType::Inner => {
                 let i_radius = self.radius() - stroke.i_stroke();
-                (x + i_radius * a,  y + i_radius * b)
+                SvgPosition(x + i_radius * a,  y + i_radius * b)
             }, 
             RadiusType::Outer => {
                 let o_radius = self.radius() + stroke.o_stroke();
-                (x + o_radius * a,  y + o_radius * b)
+                SvgPosition(x + o_radius * a,  y + o_radius * b)
             },
-            _ => (x + self.radius() * a,  y + self.radius() * b)
+            _ => SvgPosition(x + self.radius() * a,  y + self.radius() * b)
         }
     }
     fn calc_letter_thi(&self, letter:&LetterArc) -> (Option<f32>, Option<f32>, Option<f32>, Option<f32>) {
@@ -370,10 +371,10 @@ impl Word for WordCircle {
         //let i_data = Vec::new();
         let inner_start_xy = self.calc_word_arc_svg_point(angle.0.0, RadiusType::Inner);
         let outer_start_xy = self.calc_word_arc_svg_point(angle.1.0, RadiusType::Outer);
-        let o_data = Data::new()
-            .move_to(outer_start_xy);
-        let i_data = Data::new()
-            .move_to(inner_start_xy);
+        let o_data = Data::new();
+            //.move_to(outer_start_xy);
+        let i_data = Data::new();
+            //.move_to(inner_start_xy);
         (i_data,o_data)
     }
     fn end_path_data(&self, doc:Document, data:(Data,Data)) -> Document {
@@ -434,24 +435,24 @@ impl Word for WordArc {
         let start_xy = self.calc_word_arc_svg_point(self.start_angle()-self.arc_tip_length, RadiusType::Average);
         let inner_start_xy = self.calc_word_arc_svg_point(angle.0.0, RadiusType::Inner);
         let outer_start_xy = self.calc_word_arc_svg_point(angle.1.0, RadiusType::Outer);
-        let o_data = Data::new()
-            .move_to(start_xy)
-            .elliptical_arc_to((
-                self.radius(),self.radius(),
-                0.0, //angle offset
-                if self.arc_tip_length > PI {1.0} else {0.0}, //large arc
-                0.0, //sweep dir - 0 anti-clockwise
-                outer_start_xy.0,outer_start_xy.1,
-            ));
-        let i_data = Data::new()
-            .move_to(start_xy)
-            .elliptical_arc_to((
-                self.radius(),self.radius(),
-                0.0, //angle offset
-                if self.arc_tip_length > PI {1.0} else {0.0}, //large arc
-                0.0, //sweep dir - 0 anti-clockwise
-                inner_start_xy.0,inner_start_xy.1,
-            ));
+        let o_data = Data::new();
+            // .move_to(start_xy)
+            // .elliptical_arc_to((
+            //     self.radius(),self.radius(),
+            //     0.0, //angle offset
+            //     if self.arc_tip_length > PI {1.0} else {0.0}, //large arc
+            //     0.0, //sweep dir - 0 anti-clockwise
+            //     outer_start_xy.0,outer_start_xy.1,
+            // ));
+        let i_data = Data::new();
+            // .move_to(start_xy)
+            // .elliptical_arc_to((
+            //     self.radius(),self.radius(),
+            //     0.0, //angle offset
+            //     if self.arc_tip_length > PI {1.0} else {0.0}, //large arc
+            //     0.0, //sweep dir - 0 anti-clockwise
+            //     inner_start_xy.0,inner_start_xy.1,
+            // ));
         (i_data,o_data)
     }
     fn end_path_data(&self, doc:Document, data:(Data,Data)) -> Document {
