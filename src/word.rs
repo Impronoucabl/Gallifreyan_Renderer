@@ -10,6 +10,8 @@ use crate::utils;
 use crate::utils::{LargeArcFlag, PathBuilder, SvgPosition, SweepDirection};
 use crate::StemType;
 
+const PRECISION :i32 = 1000;
+
 enum RadiusType{Inner,Average,Outer}
 #[derive(Debug,Clone, Copy,PartialEq, PartialOrd)]
 pub struct InnerAngle(f32);
@@ -85,6 +87,22 @@ pub trait Word:Cartesian {
         } 
         let location= self.pord();
         self.arcs().sort_by_key(|a|location.angle_to(a.pord.as_ref()) as i32);
+        let (ang1,ang2) = self.calc_starting_letter_angle();
+        let max_overlap = std::cmp::min(PRECISION*ang1.0 as i32,PRECISION*ang2.0 as i32);
+        let overlap = max_overlap as f32/PRECISION as f32 + PI*2.0;
+        let mut count = self.arcs().len();
+        while let Some(last) = self.arcs().last() {
+            if count == 0 {
+                println!("Sorting failed, continuously looping.");
+                panic!()
+            }
+            count -= 1;
+            if location.angle_to(last.pord().as_ref()) < overlap {
+                break;
+            }
+            let last = self.arcs().pop().expect("We just tested this");
+            self.arcs().insert(1,last);
+        }
         *self.sorted() = true;
     }
     fn start_path_data(&self, angle:(InnerAngle,OuterAngle)) -> (PathBuilder, PathBuilder);
