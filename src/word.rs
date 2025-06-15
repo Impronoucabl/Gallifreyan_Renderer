@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 use std::rc::{Rc, Weak};
 
+use resvg::usvg::Node;
 use svg::Document;
 use svg::node::element::{Circle, Path};
 
@@ -18,6 +19,10 @@ pub struct InnerAngle(f32);
 #[derive(Debug,Clone, Copy,PartialEq, PartialOrd)]
 pub struct OuterAngle(f32);
 const ZERO_ANGLE : (InnerAngle, OuterAngle) = (InnerAngle(0.0),OuterAngle(0.0));
+enum CircleOrClosedPath {
+    Cir(Circle),
+    Closed(Path)
+}
 #[derive(Debug, Clone)]
 pub struct LetterArc {
     pord: Rc<PordOrCord>,
@@ -126,7 +131,7 @@ pub trait Word:Cartesian {
         if i_word_start_angle < i_letter_start_angle || o_word_start_angle < o_letter_start_angle {
             data = self.draw_word_arc(data,(i_word_start_angle,o_word_start_angle),(i_letter_start_angle,o_letter_start_angle));
         }
-        let mut cir: Option<Circle>;
+        let mut cir: Option<CircleOrClosedPath>;
         let mut end_angle: (InnerAngle,OuterAngle);
         (cir, data, end_angle) = self.draw_letter_arc(letter, data);
         if let Some(letter_circle) = cir {
@@ -143,7 +148,8 @@ pub trait Word:Cartesian {
             }
             if skip {
                 prev_pord = letter.pord();
-                (cir, data,_) = self.draw_letter_arc(letter, data);
+                //first letter must be innermost
+                (cir, data,_) = self.draw_stacked_letter_arc(letter, data);
                 if let Some(letter_circle) =  cir {
                     circle_letters.push(letter_circle);
                 };
@@ -181,8 +187,11 @@ pub trait Word:Cartesian {
         );
         data = self.draw_word_arc(data,end_angle,ending_angle);
         doc = self.end_path_data(doc, data);
-        for cir in circle_letters {
-            doc = doc.add(cir);
+        for node in circle_letters {
+            doc = match node {
+                CircleOrClosedPath::Cir(cir) => doc.add(cir),
+                CircleOrClosedPath::Closed(path) => doc.add(path),
+            };
         }
         doc
     }
@@ -204,11 +213,47 @@ pub trait Word:Cartesian {
         );
         data
     }
-    fn draw_letter_arc(&self, letter:&LetterArc, mut data:(PathBuilder, PathBuilder)) -> (Option<Circle>,(PathBuilder, PathBuilder), (InnerAngle,OuterAngle)) {
+    fn draw_stacked_letter_arc(&self, letter:&LetterArc, mut data:(PathBuilder, PathBuilder)) -> (Option<CircleOrClosedPath>,(PathBuilder, PathBuilder), (InnerAngle,OuterAngle)) {
+        let mut inner_path_end_angle = self.angle_to(letter.pord.as_ref());
+        let s_divot = match letter.stem_type {
+            StemType::J | StemType::Z => {
+                return (Some(CircleOrClosedPath::Cir(self.letter_circle_node(letter))),data,(inner_path_end_angle.into(),inner_path_end_angle.into())); 
+            }, 
+            StemType::S => false,
+            StemType::B => true
+        };
+        let mut outer_path_end_angle = inner_path_end_angle;
+        let (mut outer_path_start_angle, mut inner_path_start_angle) = (outer_path_end_angle,inner_path_end_angle); 
+        if let (_,Some(thi2),Some(thi1),_) = self.calc_letter_thi(letter) {
+            outer_path_end_angle += thi1;
+            outer_path_start_angle -= thi1;
+            inner_path_end_angle += thi2;
+            inner_path_start_angle -= thi2;
+        }        
+        let point_1 = self.calc_word_arc_svg_point(inner_path_start_angle,RadiusType::Average);
+        let point_2 = self.calc_word_arc_svg_point(outer_path_start_angle,RadiusType::Average);
+        let point_3 = self.calc_word_arc_svg_point(outer_path_end_angle,RadiusType::Average);
+        let point_4 = self.calc_word_arc_svg_point(inner_path_end_angle,RadiusType::Average);
+        let (word_radius,_) = self.get_radii();
+        let (inner_letter_radius,outer_letter_radius)= self.get_letter_radii(letter);
+        let mut path_build = PathBuilder::new();
+        path_build.move_to(point_1);
+        path_build.arc_to(point_2, word_radius, LargeArcFlag(false), SweepDirection(false));
+        path_build.arc_to(point_3, inner_letter_radius, LargeArcFlag(s_divot), SweepDirection(true));
+        path_build.arc_to(point_4, word_radius, LargeArcFlag(false), SweepDirection(false));
+        path_build.arc_to(point_1, outer_letter_radius, LargeArcFlag(s_divot), SweepDirection(false));
+        let path = Path::new()
+            .set("d", path_build.build_data().close())
+            .set("fill", self.ctx().colour().stroke())
+            .set("stroke", "none")
+            .set("stroke-width", 0.0);
+        (Some(CircleOrClosedPath::Closed(path)),data,(inner_path_end_angle.into(),inner_path_end_angle.into()))
+    }
+    fn draw_letter_arc(&self, letter:&LetterArc, mut data:(PathBuilder, PathBuilder)) -> (Option<CircleOrClosedPath>,(PathBuilder, PathBuilder), (InnerAngle,OuterAngle)) {
         let mut i_end_angle = self.angle_to(letter.pord.as_ref());
         let s_divot = match letter.stem_type {
             StemType::J | StemType::Z => {
-                return (Some(self.letter_circle_node(letter)),data,(i_end_angle.into(),i_end_angle.into())); 
+                return (Some(CircleOrClosedPath::Cir(self.letter_circle_node(letter))),data,(i_end_angle.into(),i_end_angle.into())); 
             }, 
             StemType::S => false,
             StemType::B => true

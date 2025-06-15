@@ -3,7 +3,6 @@ use std::io::Error;
 use std::rc::Rc;
 
 use gallifreyan::decorator::Linebuilder;
-use gallifreyan::pord::Polar;
 use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord};
