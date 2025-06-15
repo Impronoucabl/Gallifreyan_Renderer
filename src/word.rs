@@ -179,12 +179,12 @@ pub trait Word:Cartesian {
             };
         }
         let ending_angle = (
-            if i_word_start_angle.0 <= self.default_word_start_angle() {
+            if i_word_start_angle.0 < self.default_word_start_angle() {
                 i_word_start_angle.0 + self.default_word_end_angle()
-            } else {i_word_start_angle.0}.into(),
-            if o_word_start_angle.0 <= self.default_word_start_angle() {
+            } else {self.default_word_end_angle()}.into(),
+            if o_word_start_angle.0 < self.default_word_start_angle() {
                 o_word_start_angle.0 + self.default_word_end_angle()
-            } else {o_word_start_angle.0}.into()
+            } else {self.default_word_end_angle()}.into()
         );
         data = self.draw_word_arc(data,end_angle,ending_angle);
         doc = self.end_path_data(doc, data);
