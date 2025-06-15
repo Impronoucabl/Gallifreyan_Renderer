@@ -490,37 +490,41 @@ impl Word for WordArc {
     fn start_path_data(&self, angle:(InnerAngle,OuterAngle)) -> (PathBuilder, PathBuilder) {
         let mut o_data = PathBuilder::new();
         let mut i_data = PathBuilder::new();
-        let start_xy = self.calc_word_arc_svg_point(self.start_angle()-self.arc_tip_length, RadiusType::Average);
+        let (i_rad,o_rad) = self.get_radii();
+        let rad = 2.0*o_rad - i_rad;
+        let start_xy = self.calc_word_arc_svg_point(self.start_angle()-self.arc_tip_length, RadiusType::Outer);
         let inner_start_xy = self.calc_word_arc_svg_point(angle.0.0, RadiusType::Inner);
         let outer_start_xy = self.calc_word_arc_svg_point(angle.1.0, RadiusType::Outer);
         o_data.move_to(start_xy);
         i_data.move_to(start_xy);
         o_data.arc_to(
             outer_start_xy, 
-            self.radius(),
+            o_rad,
             LargeArcFlag(self.arc_tip_length > PI), 
             SweepDirection(false)
         );
         i_data.arc_to(
             inner_start_xy, 
-            self.radius(),
+            rad,
             LargeArcFlag(self.arc_tip_length > PI), 
             SweepDirection(false)
         );
         (i_data,o_data)
     }
     fn end_path_data(&self, doc:Document, data:(PathBuilder, PathBuilder)) -> Document {
-        let end_xy = self.calc_word_arc_svg_point(self.end_angle()+self.arc_tip_length, RadiusType::Average);
+        let (i_rad,o_rad) = self.get_radii();
+        let rad = 2.0*o_rad - i_rad;
+        let end_xy = self.calc_word_arc_svg_point(self.end_angle()+self.arc_tip_length, RadiusType::Outer);
         let (mut i_path, mut o_path) = data;
         i_path.arc_to(
             end_xy, 
-            self.radius(), 
+            rad, 
             LargeArcFlag(self.arc_tip_length > PI), 
             SweepDirection(false)
         );
         o_path.arc_to(
             end_xy, 
-            self.radius(), 
+            o_rad, 
             LargeArcFlag(self.arc_tip_length > PI), 
             SweepDirection(false)
         );
