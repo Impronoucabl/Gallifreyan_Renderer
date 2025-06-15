@@ -19,6 +19,7 @@ pub struct InnerAngle(f32);
 #[derive(Debug,Clone, Copy,PartialEq, PartialOrd)]
 pub struct OuterAngle(f32);
 const ZERO_ANGLE : (InnerAngle, OuterAngle) = (InnerAngle(0.0),OuterAngle(0.0));
+#[derive(Debug, Clone)]
 enum CircleOrClosedPath {
     Cir(Circle),
     Closed(Path)
@@ -40,7 +41,7 @@ pub struct WordCircle {
     path_circle: bool,
     sorted: bool,
 }
-
+#[derive(Debug, Clone)]
 pub struct WordArc {
     name:String,
     pord:Rc<PordOrCord>,

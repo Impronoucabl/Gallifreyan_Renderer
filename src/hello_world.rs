@@ -7,7 +7,7 @@ use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord};
 use Gal::{basic, decorator, word::{self, Word}, StemType};
-use Gal::{pord_vec2dot,pord_from_vec_pop};
+use Gal::{pord_vec2dot,pord_from_vec_pop,gal_rc};
 
 const WIDTH: u64 = 2048;
 const HEIGHT:u64 = 2048;
@@ -30,7 +30,7 @@ pub fn hello_world() -> Result<(), Error> {
     let v_ctx = prime_ctx.new_strokewidth(20.0);
 
     println!("Starting...");
-    let hello_pord = Rc::new(PordOrCord::Pord(POrd::new(450.0, 0.0, gal_origin.clone())));
+    let hello_pord = gal_rc!(450.0, 0.0, gal_origin);
     let mut hello = word::WordArc::new(
         "hello",
         hello_pord.clone(),
@@ -47,7 +47,7 @@ pub fn hello_world() -> Result<(), Error> {
     let o_pord = o_pord_vec.pop().unwrap();
     hello.new_letter_from_pord(o_pord, VOWEL_RADIUS, StemType::J, Some(v_ctx.clone()), 0);
     
-    let world_pord = Rc::new(PordOrCord::Pord(POrd::new(450.0, PI, gal_origin.clone())));
+    let world_pord = gal_rc!(450.0, PI, gal_origin);
     let mut world = word::WordCircle::new("world",world_pord.clone(),400.0,w_ctx);
     let (_w_pord,mut w_points) = world.new_letter_with_attach(400.0, 0.0, LETTER_RADIUS, StemType::S, None, 3);
     let mut new_o = w_points.pop().unwrap();

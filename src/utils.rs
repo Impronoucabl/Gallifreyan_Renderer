@@ -108,7 +108,7 @@ macro_rules! pord_vec2dot {
     ($pord_vec:expr, $dist_mod:expr, $radius:expr, $ctx:expr, $doc:expr) => {
         for mut loc in $pord_vec {
             loc.add_dist($dist_mod);
-            let pord = Rc::new(PordOrCord::Pord(loc));
+            let pord = Rc::new(gallifreyan::pord::PordOrCord::Pord(loc));
             $doc = basic::circle($doc,pord.as_ref(),$radius,$ctx);
         }
     };
@@ -122,6 +122,6 @@ macro_rules! pord_from_vec_pop {
             loc.set_theta(ang);
         }
         loc.add_dist($dist_mod);
-        let $pord_name = Rc::new(PordOrCord::Pord(loc));
+        let $pord_name = Rc::new(gallifreyan::pord::PordOrCord::Pord(loc));
     };
 }

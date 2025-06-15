@@ -153,3 +153,10 @@ impl PordOrCord {
         }
     }
 }
+
+#[macro_export] 
+macro_rules! poc_rc {
+    ($dist:expr,$theta:expr,$anchor:expr) => {
+        Rc::new(gallifreyan::pord::PordOrCord::Pord(POrd::new($dist, $theta, $anchor.clone())))
+    };
+}
