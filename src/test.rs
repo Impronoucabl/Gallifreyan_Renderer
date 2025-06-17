@@ -6,7 +6,7 @@ use gallifreyan as Gal;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
 use Gal::{basic, decorator, word::{self,Word}, StemType};
-use Gal::utils::SweepDirection::AntiClockwise as ACW;
+use Gal::utils::SweepDirection;
 
 const WIDTH: u64 = 2048;
 const HEIGHT:u64 = 2048;
@@ -26,6 +26,7 @@ pub fn test() -> Result<(), Error> {
     let colour2 = ColourContext::new("white","none","red");
     let mut stroke = StrokeContext::new(20.0);
     let prime_ctx = Context::new(colour,stroke,origin);
+    let thick_ctx = prime_ctx.new_strokewidth(25.0);
     let word_ctx = prime_ctx.new_strokewidth(10.0); 
     let lett_ctx =  prime_ctx.new_strokewidth(8.0); 
 
@@ -41,8 +42,8 @@ pub fn test() -> Result<(), Error> {
     let poi = Rc::new(Pord(POrd::new(400.0,1.5*PI, gal_origin.clone())));
     let word_p = Rc::new(Pord(POrd::new(400.0,PI, gal_origin.clone())));
     
-    let mut test = word::WordCircle::new("test",poi.clone(),200.0,word_ctx.clone()); 
-    test.new_letter_from_data(155.0,PI*0.5,60.0,StemType::B,None);
+    let mut test = word::WordCircle::new("test",poi.clone(),200.0,thick_ctx.clone()); 
+    test.new_letter_from_data(180.0,PI*0.5,50.0,StemType::B,None);
     test.new_letter_from_data(130.0,PI*0.0,LETTER_RADIUS,StemType::J,None);
     let mut test2 = word::WordCircle::new("test2",word_p.clone(),300.0,word_ctx.clone());
     test2.new_letter_from_data(200.0,PI*1.5,80.0,StemType::S,None);
@@ -64,10 +65,10 @@ pub fn test() -> Result<(), Error> {
 
     doc = basic::circle(doc, gal_origin.as_ref(), 1000.0,&prime_ctx);
     doc = basic::circle(doc, &Gord(0.0,-800.0), 100.0,&prime_ctx);
-    doc = basic::arc_big_circle(doc, &Gord(-400.0,-300.0),&Gord(0.0,500.0),500.0,ACW, &lett_ctx);
+    doc = basic::arc_big_circle(doc, &Gord(-400.0,-300.0),&Gord(0.0,500.0),500.0,SweepDirection(false), &lett_ctx);
     doc = basic::circle(doc, &Gord(600.0,0.0), 250.0, &word_ctx);
     doc = basic::circle(doc, &poi,300.0, &lett2_ctx);
-    doc = basic::arc_path(doc,10.0,&poi,&Gord(0.0,-300.0),300.0,ACW,&path_ctx);
+    doc = basic::arc_path(doc,10.0,&poi,&Gord(0.0,-300.0),300.0,SweepDirection(false),&path_ctx);
 
     Gal::save(filepath, &doc)
 }

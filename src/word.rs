@@ -252,7 +252,7 @@ pub trait Word:Cartesian {
     }
     fn draw_letter_arc(&self, letter:&LetterArc, mut data:(PathBuilder, PathBuilder)) -> (Option<CircleOrClosedPath>,(PathBuilder, PathBuilder), (InnerAngle,OuterAngle)) {
         let mut i_end_angle = self.angle_to(letter.pord.as_ref());
-        let s_divot = match letter.stem_type {
+        let b_divot = match letter.stem_type {
             StemType::J | StemType::Z => {
                 return (Some(CircleOrClosedPath::Cir(self.letter_circle_node(letter))),data,(i_end_angle.into(),i_end_angle.into())); 
             }, 
@@ -261,20 +261,29 @@ pub trait Word:Cartesian {
         };
         let (inner_letter_radius,outer_letter_radius)= self.get_letter_radii(letter);
         let mut o_end_angle = i_end_angle;
-        if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
+        let mut oversized_b = false;
+        if let (Some(thi1),Some(thi2),_,Some(thi4)) = self.calc_letter_thi(letter) {
             i_end_angle += thi2;
             o_end_angle += thi1;
+            if b_divot {
+                let (inner_word_radius, _) = self.get_radii();
+                let theta = (inner_word_radius*thi4.sin()/outer_letter_radius).asin();
+                if theta < PI/2.0 {
+                    oversized_b = true;
+                }
+            }
         }
+        
         data.0.arc_to(
             self.calc_word_arc_svg_point(i_end_angle,RadiusType::Inner),
             outer_letter_radius,
-            LargeArcFlag(s_divot), //large arc
+            LargeArcFlag(b_divot && !oversized_b), //large arc
             SweepDirection(true), //sweep dir - 0 anti-clockwise
         );
         data.1.arc_to(
             self.calc_word_arc_svg_point(o_end_angle,RadiusType::Outer),
             inner_letter_radius,
-            LargeArcFlag(s_divot), //large arc
+            LargeArcFlag(b_divot), //large arc
             SweepDirection(true), //sweep dir - 0 anti-clockwise
         );
         (None, data, (i_end_angle.into(),o_end_angle.into()))
