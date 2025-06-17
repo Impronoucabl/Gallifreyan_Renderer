@@ -26,7 +26,7 @@ pub fn test() -> Result<(), Error> {
     let colour2 = ColourContext::new("white","none","red");
     let mut stroke = StrokeContext::new(20.0);
     let prime_ctx = Context::new(colour,stroke,origin);
-    let thick_ctx = prime_ctx.new_strokewidth(25.0);
+    let thick_ctx = prime_ctx.new_strokewidth(30.0);
     let word_ctx = prime_ctx.new_strokewidth(10.0); 
     let lett_ctx =  prime_ctx.new_strokewidth(8.0); 
 
@@ -43,7 +43,7 @@ pub fn test() -> Result<(), Error> {
     let word_p = Rc::new(Pord(POrd::new(400.0,PI, gal_origin.clone())));
     
     let mut test = word::WordCircle::new("test",poi.clone(),200.0,thick_ctx.clone()); 
-    test.new_letter_from_data(180.0,PI*0.5,50.0,StemType::B,None);
+    test.new_letter_from_data(185.0,PI*0.5,50.0,StemType::B,None);
     test.new_letter_from_data(130.0,PI*0.0,LETTER_RADIUS,StemType::J,None);
     let mut test2 = word::WordCircle::new("test2",word_p.clone(),300.0,word_ctx.clone());
     test2.new_letter_from_data(200.0,PI*1.5,80.0,StemType::S,None);

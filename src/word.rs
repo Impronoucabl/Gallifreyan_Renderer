@@ -162,7 +162,7 @@ pub trait Word:Cartesian {
             let (i_thi, o_thi) = match letter.stem_type {
                 StemType::J | StemType::Z => (0.0, 0.0), 
                 StemType::B | StemType::S => {
-                    if let (Some(thi1),Some(thi2),_,_) = self.calc_letter_thi(letter) {
+                    if let (Some(thi1),Some(thi2),_,_,_) = self.calc_letter_thi(letter) {
                         (thi2, thi1)
                     } else {(0.0,0.0)}
                 }
@@ -225,7 +225,7 @@ pub trait Word:Cartesian {
         };
         let mut outer_path_end_angle = inner_path_end_angle;
         let (mut outer_path_start_angle, mut inner_path_start_angle) = (outer_path_end_angle,inner_path_end_angle); 
-        if let (_,Some(thi2),Some(thi1),_) = self.calc_letter_thi(letter) {
+        if let (_,Some(thi2),Some(thi1),_,_) = self.calc_letter_thi(letter) {
             outer_path_end_angle += thi1;
             outer_path_start_angle -= thi1;
             inner_path_end_angle += thi2;
@@ -262,18 +262,13 @@ pub trait Word:Cartesian {
         let (inner_letter_radius,outer_letter_radius)= self.get_letter_radii(letter);
         let mut o_end_angle = i_end_angle;
         let mut oversized_b = false;
-        if let (Some(thi1),Some(thi2),_,Some(thi4)) = self.calc_letter_thi(letter) {
+        if let (Some(thi1),Some(thi2),_,_,Some(theta)) = self.calc_letter_thi(letter) {
             i_end_angle += thi2;
             o_end_angle += thi1;
-            if b_divot {
-                let (inner_word_radius, _) = self.get_radii();
-                let theta = (inner_word_radius*thi4.sin()/outer_letter_radius).asin();
-                if theta < PI/2.0 {
-                    oversized_b = true;
-                }
+            if b_divot && theta < PI/2.0 {
+                oversized_b = true;
             }
         }
-        
         data.0.arc_to(
             self.calc_word_arc_svg_point(i_end_angle,RadiusType::Inner),
             outer_letter_radius,
@@ -309,14 +304,14 @@ pub trait Word:Cartesian {
         match letter.stem_type { 
             StemType::B | StemType::S => {
                 match self.calc_letter_thi(letter) {
-                    (Some(thi1),Some(thi2),_,_) => {
+                    (Some(thi1),Some(thi2),_,_,_) => {
                         i_letter_start_angle -= thi2;
                         o_letter_start_angle -= thi1;
                     }
-                    (Some(thi1),_,_,_) => {
+                    (Some(thi1),_,_,_,_) => {
                         o_letter_start_angle -= thi1;
                     }
-                    (_,Some(thi2),_,_) => {
+                    (_,Some(thi2),_,_,_) => {
                         i_letter_start_angle -= thi2;
                     }
                     _ => (),
@@ -344,33 +339,22 @@ pub trait Word:Cartesian {
             _ => SvgPosition(x + self.radius() * a,  y + self.radius() * b)
         }
     }
-    fn calc_letter_thi(&self, letter:&LetterArc) -> (Option<f32>, Option<f32>, Option<f32>, Option<f32>) {
-        let con = match &letter.ctx {
-            Some(con) => &con,
-            None => &self.ctx()
-        };
-        let l_stroke = con.stroke().clone();
+    fn calc_letter_thi(&self, letter:&LetterArc) -> (Option<f32>, Option<f32>, Option<f32>, Option<f32>, Option<f32>) {
         let (word_r_i, word_r_o) = self.get_radii();
-        let lett_r_i = letter.radius - l_stroke.i_stroke();
-        let lett_r_o = letter.radius + l_stroke.o_stroke();
+        let (lett_r_i, lett_r_o) = self.get_letter_radii(letter);
+        let (word_r_i_sq,word_r_o_sq,lett_r_i_sq,lett_r_o_sq) = (word_r_i.powi(2),word_r_o.powi(2),lett_r_i.powi(2),lett_r_o.powi(2));
         let dist_sq = self.pord().dist_to_sq(letter.pord.as_ref());
         //"outer thi"
-        let thi1_top = -lett_r_i.powi(2) + dist_sq + word_r_o.powi(2);
-        let thi1_bot = dist_sq.sqrt()*2.0*word_r_o;
-        let thi1 = thi_check(thi1_top, thi1_bot);
+        let thi1 = cos_rule_angle_c(dist_sq,word_r_o_sq,lett_r_i_sq);
         //"inner thi"
-        let thi2_top = -lett_r_o.powi(2) + dist_sq + word_r_i.powi(2);
-        let thi2_bot = 2.0*dist_sq.sqrt()*word_r_i;
-        let thi2 = thi_check(thi2_top, thi2_bot);
+        let thi2 = cos_rule_angle_c(dist_sq,word_r_i_sq,lett_r_o_sq);
         //inner word boundary thi
-        let thi3_top = -lett_r_i.powi(2) + dist_sq + word_r_i.powi(2);
-        let thi3_bot = 2.0*dist_sq.sqrt()*word_r_i;
-        let thi3 = thi_check(thi3_top, thi3_bot);
+        let thi3 = cos_rule_angle_c(dist_sq,word_r_i_sq,lett_r_i_sq);
         //outer word boundary thi
-        let thi4_top = -lett_r_o.powi(2) + dist_sq + word_r_o.powi(2);
-        let thi4_bot = 2.0*dist_sq.sqrt()*word_r_o;
-        let thi4 = thi_check(thi4_top, thi4_bot);
-        (thi1,thi2,thi3,thi4)
+        let thi4 = cos_rule_angle_c(dist_sq,word_r_o_sq,lett_r_o_sq);
+        //theta
+        let theta = cos_rule_angle_c(dist_sq,lett_r_o_sq, word_r_i_sq);
+        (thi1,thi2,thi3,thi4,theta)
     }
     fn get_letter_radii(&self, letter:&LetterArc) -> (f32,f32) {
         let con = match &letter.ctx {
@@ -639,6 +623,12 @@ impl LetterArc {
     fn pord(&self) -> Rc<PordOrCord> {
         self.pord.clone()
     }
+}
+
+fn cos_rule_angle_c(a_dist_sq:f32,b_dist_sq:f32,c_dist_sq:f32) -> Option<f32> {
+    let top = a_dist_sq + b_dist_sq - c_dist_sq;
+    let bot = a_dist_sq.sqrt()*(b_dist_sq.sqrt())*2.0;
+    thi_check(top, bot)
 }
 
 fn thi_check(top:f32,bot:f32) -> Option<f32> {
