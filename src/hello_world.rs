@@ -15,7 +15,7 @@ const DOT_RADIUS    :f32 = 30.0;
 const VOWEL_RADIUS  :f32 = 40.0;
 const LETTER_RADIUS :f32 = 120.0;
 
-pub fn hello_world() -> Result<(), Error> {
+pub fn hello_world() -> Result<Document, Error> {
     let filename = "hello_world";
     let filepath = "Imgs\\".to_owned() + &filename.trim();
     println!("Initialising...");
@@ -93,5 +93,6 @@ pub fn hello_world() -> Result<(), Error> {
 
     doc = basic::circle(doc, gal_origin.as_ref(), 970.0,&prime_ctx);
     println!("Saving...");
-    Gal::save(filepath, &doc)
+    Gal::save(filepath, &doc)?;
+    Ok(doc)
 }

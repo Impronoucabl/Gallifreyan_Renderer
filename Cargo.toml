@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-resvg = "0.43.0"
+resvg = "0.45.1"
 svg = "0.17.0"
 rand = "0.8.5"

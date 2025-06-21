@@ -3,6 +3,7 @@ use std::io::Error;
 use std::rc::Rc;
 
 use gallifreyan as Gal;
+use svg::Document;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
 use Gal::{basic, decorator, word::{self,Word}, StemType};
@@ -15,8 +16,8 @@ const fn canvas_colour() -> &'static str {"yellow"}
 const VOWEL_RADIUS :f32 = 12.0;
 const LETTER_RADIUS :f32 = 40.0;
 
-pub fn test() -> Result<(), Error> {
-    let filename = "test2";
+pub fn test(filename:&str) -> Result<Document, Error> {
+    //let filename = "test2";
     let filepath = "Imgs\\".to_owned() + &filename.trim();
     println!("Starting...");
     let (mut doc, svg_origin) = Gal::canvas_init(WIDTH, HEIGHT, canvas_colour());
@@ -43,7 +44,8 @@ pub fn test() -> Result<(), Error> {
     let word_p = Rc::new(Pord(POrd::new(400.0,PI, gal_origin.clone())));
     
     let mut test = word::WordCircle::new("test",poi.clone(),200.0,thick_ctx.clone()); 
-    test.new_letter_from_data(185.0,PI*0.5,50.0,StemType::B,None);
+    let l_pord = test.new_letter_from_data(185.0,PI*0.5,50.0,StemType::B,None);
+    test.new_letter_from_pordorcord(l_pord, 100.0,StemType::B, Some(lett_ctx.clone()), 0);
     test.new_letter_from_data(130.0,PI*0.0,LETTER_RADIUS,StemType::J,None);
     let mut test2 = word::WordCircle::new("test2",word_p.clone(),300.0,word_ctx.clone());
     test2.new_letter_from_data(200.0,PI*1.5,80.0,StemType::S,None);
@@ -70,5 +72,6 @@ pub fn test() -> Result<(), Error> {
     doc = basic::circle(doc, &poi,300.0, &lett2_ctx);
     doc = basic::arc_path(doc,10.0,&poi,&Gord(0.0,-300.0),300.0,SweepDirection(false),&path_ctx);
 
-    Gal::save(filepath, &doc)
+    Gal::save(filepath, &doc)?;
+    Ok(doc)
 }

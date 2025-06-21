@@ -31,3 +31,7 @@ pub fn save(filepath: String, doc:&Document) -> Result<(), Error> {
     svg::save(filename, doc)
 }
 
+pub fn svg_str(doc:&Document) -> String {
+    Document::to_string(doc)
+}
+
