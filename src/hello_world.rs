@@ -2,8 +2,11 @@ use std::f32::consts::PI;
 use std::io::Error;
 use std::rc::Rc;
 
+use svg::Document;
+
 use gallifreyan::decorator::Linebuilder;
 use gallifreyan as Gal;
+
 use Gal::ctx::{Context, ColourContext, StrokeContext};
 use Gal::pord::{POrd, PordOrCord};
 use Gal::{basic, decorator, word::{self, Word}, StemType};

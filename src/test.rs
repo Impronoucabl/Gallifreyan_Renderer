@@ -43,9 +43,9 @@ pub fn test(filename:&str) -> Result<Document, Error> {
     let poi = Rc::new(Pord(POrd::new(400.0,1.5*PI, gal_origin.clone())));
     let word_p = Rc::new(Pord(POrd::new(400.0,PI, gal_origin.clone())));
     
-    let mut test = word::WordCircle::new("test",poi.clone(),200.0,thick_ctx.clone()); 
-    let l_pord = test.new_letter_from_data(185.0,PI*0.5,50.0,StemType::B,None);
-    test.new_letter_from_pordorcord(l_pord, 100.0,StemType::B, Some(lett_ctx.clone()), 0);
+    let mut test = word::WordCircle::new("test",poi.clone(),200.0,lett_ctx.clone()); 
+    let l_pord = test.new_letter_from_data(120.0,PI*0.5,90.0,StemType::B,None);
+    test.new_letter_from_pordorcord(l_pord, 140.0,StemType::B, None, 0);
     test.new_letter_from_data(130.0,PI*0.0,LETTER_RADIUS,StemType::J,None);
     let mut test2 = word::WordCircle::new("test2",word_p.clone(),300.0,word_ctx.clone());
     test2.new_letter_from_data(200.0,PI*1.5,80.0,StemType::S,None);

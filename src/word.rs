@@ -11,7 +11,8 @@ use crate::utils;
 use crate::utils::{LargeArcFlag, PathBuilder, SvgPosition, SweepDirection};
 use crate::StemType;
 
-const PRECISION :i32 = 1000;
+const SORT_PRECISION :i32 = 1000;
+const B_DIVOT_FUDGE_PRECISION :f32 = 0.2;
 
 enum RadiusType{Inner,Average,Outer}
 #[derive(Debug,Clone, Copy,PartialEq, PartialOrd)]
@@ -94,8 +95,8 @@ pub trait Word:Cartesian {
         let location= self.pord();
         self.arcs().sort_by_key(|a|location.angle_to(a.pord.as_ref()) as i32);
         let (ang1,ang2) = self.calc_starting_letter_angle();
-        let max_overlap = std::cmp::min(PRECISION*ang1.0 as i32,PRECISION*ang2.0 as i32);
-        let overlap = max_overlap as f32/PRECISION as f32 + PI*2.0;
+        let max_overlap = std::cmp::min(SORT_PRECISION*ang1.0 as i32,SORT_PRECISION*ang2.0 as i32);
+        let overlap = max_overlap as f32/SORT_PRECISION as f32 + PI*2.0;
         let mut count = self.arcs().len();
         while let Some(last) = self.arcs().last() {
             if count == 0 {
@@ -216,7 +217,7 @@ pub trait Word:Cartesian {
     }
     fn draw_stacked_letter_arc(&self, letter:&LetterArc, mut data:(PathBuilder, PathBuilder)) -> (Option<CircleOrClosedPath>,(PathBuilder, PathBuilder), (InnerAngle,OuterAngle)) {
         let mut inner_path_end_angle = self.angle_to(letter.pord.as_ref());
-        let s_divot = match letter.stem_type {
+        let b_divot = match letter.stem_type {
             StemType::J | StemType::Z => {
                 return (Some(CircleOrClosedPath::Cir(self.letter_circle_node(letter))),data,(inner_path_end_angle.into(),inner_path_end_angle.into())); 
             }, 
@@ -225,11 +226,15 @@ pub trait Word:Cartesian {
         };
         let mut outer_path_end_angle = inner_path_end_angle;
         let (mut outer_path_start_angle, mut inner_path_start_angle) = (outer_path_end_angle,inner_path_end_angle); 
-        if let (_,Some(thi2),Some(thi1),_,_) = self.calc_letter_thi(letter) {
+        let mut out_large_arc = true;
+        if let (_,Some(thi2),Some(thi1),_,Some(theta)) = self.calc_letter_thi(letter) {
             outer_path_end_angle += thi1;
             outer_path_start_angle -= thi1;
             inner_path_end_angle += thi2;
             inner_path_start_angle -= thi2;
+            if theta < PI/2.0 {
+                out_large_arc = false
+            }
         }        
         let point_1 = self.calc_word_arc_svg_point(inner_path_start_angle,RadiusType::Average);
         let point_2 = self.calc_word_arc_svg_point(outer_path_start_angle,RadiusType::Average);
@@ -240,9 +245,9 @@ pub trait Word:Cartesian {
         let mut path_build = PathBuilder::new();
         path_build.move_to(point_1);
         path_build.arc_to(point_2, word_radius, LargeArcFlag(false), SweepDirection(false));
-        path_build.arc_to(point_3, inner_letter_radius, LargeArcFlag(s_divot), SweepDirection(true));
+        path_build.arc_to(point_3, inner_letter_radius + B_DIVOT_FUDGE_PRECISION/2.0, LargeArcFlag(b_divot && out_large_arc), SweepDirection(true));
         path_build.arc_to(point_4, word_radius, LargeArcFlag(false), SweepDirection(false));
-        path_build.arc_to(point_1, outer_letter_radius, LargeArcFlag(s_divot), SweepDirection(false));
+        path_build.arc_to(point_1, outer_letter_radius + B_DIVOT_FUDGE_PRECISION, LargeArcFlag(b_divot && out_large_arc), SweepDirection(false));
         let path = Path::new()
             .set("d", path_build.build_data().close())
             .set("fill", self.ctx().colour().stroke())
@@ -336,7 +341,10 @@ pub trait Word:Cartesian {
                 let o_radius = self.radius() + stroke.o_stroke();
                 SvgPosition(x + o_radius * a,  y + o_radius * b)
             },
-            _ => SvgPosition(x + self.radius() * a,  y + self.radius() * b)
+            _ => {
+                let fudge_radius = self.radius() - stroke.i_stroke() + B_DIVOT_FUDGE_PRECISION;
+                SvgPosition(x + fudge_radius * a,  y + fudge_radius * b)
+            }
         }
     }
     fn calc_letter_thi(&self, letter:&LetterArc) -> (Option<f32>, Option<f32>, Option<f32>, Option<f32>, Option<f32>) {
