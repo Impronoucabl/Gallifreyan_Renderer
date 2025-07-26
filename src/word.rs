@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 use std::rc::{Rc, Weak};
 
-use resvg::usvg::Node;
 use svg::Document;
 use svg::node::element::{Circle, Path};
 
