@@ -1,16 +1,20 @@
-#[derive(Debug, Clone, Default, PartialEq)]
+use std::rc::Rc;
+
+use crate::pord::PordOrCord;
+
+#[derive(Debug, Clone, Default)]
 pub struct Context {
     colour: ColourContext,
     stroke: StrokeContext,
-    origin: (f32,f32)
+    origin: Rc<PordOrCord>
 }
-#[derive(Debug, Clone, Hash, PartialEq)]
+#[derive(Debug, Clone, Hash)]
 pub struct ColourContext {
     bg:String,
     fill:String,
     stroke:String,
 }
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct StrokeContext {
     inner_strokewidth:f32,
     outer_strokewidth:f32,
@@ -78,8 +82,8 @@ impl StrokeContext {
 }
 
 impl Context {
-    pub fn new(colour:ColourContext, stroke:StrokeContext, origin:&(f32,f32)) -> Context {
-        Context { colour, stroke, origin:*origin }
+    pub fn new(colour:ColourContext, stroke:StrokeContext, origin:Rc<PordOrCord>) -> Context {
+        Context { colour, stroke, origin:origin.clone() }
     }
     pub fn colour(&self) -> &ColourContext {
         &self.colour
@@ -88,12 +92,15 @@ impl Context {
         &self.stroke
     }
     pub fn origin(&self) -> (f32,f32) {
-        self.origin
+        match *self.origin {
+            PordOrCord::Cord(x,y) => (x,y),
+            _ => panic!("Anchor is a not a Cord")
+        }
     }
     pub fn new_strokewidth(&self, strokewidth:f32) -> Context {
-        Context { colour: self.colour.clone(), stroke: StrokeContext::new(strokewidth) , origin:self.origin() }
+        Context { colour: self.colour.clone(), stroke: StrokeContext::new(strokewidth) , origin:self.origin.clone() }
     }
-    pub fn set_origin(&mut self, svg_origin: (f32, f32)) {
+    pub fn set_origin(&mut self, svg_origin: Rc<PordOrCord>) {
         self.origin = svg_origin;
     }
 }

@@ -2,10 +2,11 @@ use std::f32::consts::PI;
 use std::io::Error;
 use std::rc::Rc;
 
+use gallifreyan::pord::PordOrCord::{self,Pord,Gord};
 use gallifreyan as Gal;
 use svg::Document;
 use Gal::ctx::{Context, ColourContext, StrokeContext};
-use Gal::pord::{POrd, PordOrCord::{Pord,Gord}};
+use Gal::pord::POrd;
 use Gal::{basic, decorator, word::{self,Word}, StemType};
 use Gal::utils::SweepDirection;
 
@@ -21,27 +22,26 @@ pub fn test(filename:&str) -> Result<Document, Error> {
     let filepath = "Imgs\\".to_owned() + &filename.trim();
     println!("Starting...");
     let (mut doc, svg_origin) = Gal::canvas_init(WIDTH, HEIGHT, canvas_colour());
-    let origin = svg_origin.as_ref();
-    let gal_origin = Rc::new(Gord(0.0,0.0));
+    let origin = PordOrCord::gal_origin(svg_origin);
     let colour = ColourContext::default();
     let colour2 = ColourContext::new("white","none","red");
     let mut stroke = StrokeContext::new(20.0);
-    let prime_ctx = Context::new(colour,stroke,origin);
+    let prime_ctx = Context::new(colour,stroke,origin.clone());
     let thick_ctx = prime_ctx.new_strokewidth(30.0);
     let word_ctx = prime_ctx.new_strokewidth(10.0); 
     let lett_ctx =  prime_ctx.new_strokewidth(8.0); 
 
     stroke.set_i_stroke(3.0);
     stroke.set_o_stroke(5.0);
-    let lett2_ctx = Context::new(colour2,stroke,origin);
+    let lett2_ctx = Context::new(colour2,stroke,origin.clone());
     //let lett2_ctx =  prime_ctx.new_strokewidth(10.0);
     
     let filled = ColourContext::new("white","black","none");
     let strokeless = StrokeContext::new(0.0);
-    let path_ctx = Context::new(filled,strokeless,origin);
+    let path_ctx = Context::new(filled,strokeless,origin.clone());
     
-    let poi = Rc::new(Pord(POrd::new(400.0,1.5*PI, gal_origin.clone())));
-    let word_p = Rc::new(Pord(POrd::new(400.0,PI, gal_origin.clone())));
+    let poi = Rc::new(Pord(POrd::new(400.0,1.5*PI, origin.clone())));
+    let word_p = Rc::new(Pord(POrd::new(400.0,PI, origin.clone())));
     
     let mut test = word::WordCircle::new("test",poi.clone(),200.0,lett_ctx.clone()); 
     let l_pord = test.new_letter_from_data(120.0,PI*0.5,90.0,StemType::B,None);
@@ -57,7 +57,7 @@ pub fn test(filename:&str) -> Result<Document, Error> {
     _ = line1.add_pord(poi.clone());
     _ = line1.add_pord(word_p.clone());
     let mut line2 = line1.clone();
-    _ = line2.add_pord(gal_origin.clone());
+    _ = line2.add_pord(origin.clone());
     line2.switch_pord_1_2();
     let real_line: decorator::StraightLine = line1.try_into().expect("I said so.");
     let curved_line: decorator::CirculcarLine = line2.try_into().expect("I said so too.");
@@ -65,7 +65,7 @@ pub fn test(filename:&str) -> Result<Document, Error> {
     doc = real_line.draw(doc);
     doc = curved_line.draw_small(doc);
 
-    doc = basic::circle(doc, gal_origin.as_ref(), 1000.0,&prime_ctx);
+    doc = basic::circle(doc, origin.as_ref(), 1000.0,&prime_ctx);
     doc = basic::circle(doc, &Gord(0.0,-800.0), 100.0,&prime_ctx);
     doc = basic::arc_big_circle(doc, &Gord(-400.0,-300.0),&Gord(0.0,500.0),500.0,SweepDirection(false), &lett_ctx);
     doc = basic::circle(doc, &Gord(600.0,0.0), 250.0, &word_ctx);

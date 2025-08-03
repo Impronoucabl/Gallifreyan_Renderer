@@ -23,17 +23,16 @@ pub fn hello_world() -> Result<Document, Error> {
     let filepath = "Imgs\\".to_owned() + &filename.trim();
     println!("Initialising...");
     let (mut doc, svg_origin) = Gal::canvas_init(WIDTH, HEIGHT, "white");
-    let origin = svg_origin.as_ref();
-    let gal_origin = PordOrCord::gal_origin();
+    let origin = PordOrCord::gal_origin(svg_origin);
     let colour = ColourContext::default();
     let stroke = StrokeContext::new(60.0);
-    let prime_ctx = Context::new(colour,stroke,origin);
+    let prime_ctx = Context::new(colour,stroke,origin.clone());
     let w_ctx = prime_ctx.new_strokewidth(40.0);
     let l_ctx = prime_ctx.new_strokewidth(25.0);
     let v_ctx = prime_ctx.new_strokewidth(20.0);
 
     println!("Starting...");
-    let hello_pord = poc_rc!(450.0, 0.0, gal_origin);
+    let hello_pord = poc_rc!(450.0, 0.0, origin.clone());
     let mut hello = word::WordArc::new(
         "hello",
         hello_pord.clone(),
@@ -50,7 +49,7 @@ pub fn hello_world() -> Result<Document, Error> {
     let o_pord = o_pord_vec.pop().unwrap();
     hello.new_letter_from_pord(o_pord, VOWEL_RADIUS, StemType::J, Some(v_ctx.clone()), 0);
     
-    let world_pord = poc_rc!(450.0, PI, gal_origin);
+    let world_pord = poc_rc!(450.0, PI, origin.clone());
     let mut world = word::WordCircle::new("world",world_pord.clone(),400.0,w_ctx);
     let (_w_pord,mut w_points) = world.new_letter_with_attach(400.0, 0.0, LETTER_RADIUS, StemType::S, None, 3);
     let mut new_o = w_points.pop().unwrap();
@@ -68,7 +67,7 @@ pub fn hello_world() -> Result<Document, Error> {
     println!("Drawing dots...");
     let filled = ColourContext::default_path();
     let strokeless = StrokeContext::new(0.0);
-    let path_ctx = Context::new(filled,strokeless,origin);
+    let path_ctx = Context::new(filled,strokeless,origin.clone());
     pord_vec2dot!(l_points,-65.0,DOT_RADIUS, &path_ctx,doc);
     pord_vec2dot!(d_points,-65.0,DOT_RADIUS, &path_ctx,doc);
     pord_vec2dot!(r_points,-65.0,DOT_RADIUS, &path_ctx,doc);
@@ -81,7 +80,7 @@ pub fn hello_world() -> Result<Document, Error> {
     pord_from_vec_pop!(h_2,h_points,0.0,Some(PI*4.0/3.0));
     _ = first.add_pord(h_1);
     _ = first.add_pord(h_2);
-    _ = first.add_pord(gal_origin.clone());
+    _ = first.add_pord(origin.clone());
     let line1: decorator::CirculcarLine = first.try_into().expect("Let's go!");
     doc = line1.draw_big(doc);
 
@@ -94,7 +93,7 @@ pub fn hello_world() -> Result<Document, Error> {
     let line2:decorator::CirculcarLine = second.try_into().expect("Noice.");
     doc = line2.draw_small(doc);
 
-    doc = basic::circle(doc, gal_origin.as_ref(), 970.0,&prime_ctx);
+    doc = basic::circle(doc, origin.as_ref(), 970.0,&prime_ctx);
     println!("Saving...");
     Gal::save(filepath, &doc)?;
     Ok(doc)

@@ -6,7 +6,7 @@ use std::f32::consts::PI;
 pub enum PordOrCord{
     Pord(POrd),
     Cord(f32,f32),
-    Gord(f32,f32)
+    Gord(f32,f32) 
 }
 //Always use svg for POrds
 #[derive(Debug, Clone, Default)]
@@ -129,8 +129,8 @@ impl Polar for POrd {
 }
 
 impl PordOrCord {
-    pub fn gal_origin() -> Rc<PordOrCord> {
-        Rc::new(PordOrCord::Gord(0.0, 0.0))
+    pub fn gal_origin(svg_origin:(f32,f32)) -> Rc<PordOrCord> {
+        Rc::new(PordOrCord::Cord(svg_origin.0, svg_origin.1))
     }
     pub fn get_r_mut(&mut self) -> Option<&mut f32> {
         match self {
@@ -151,6 +151,12 @@ impl PordOrCord {
             },
             _ => None
         }
+    }
+}
+
+impl Default for PordOrCord {
+    fn default() -> Self {
+        PordOrCord::Cord(0.0, 0.0)
     }
 }
 
